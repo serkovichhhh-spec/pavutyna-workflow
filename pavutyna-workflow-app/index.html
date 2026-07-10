@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ПАВУТИНА ВОРКФЛОУ</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">ПВ</div>
+          <div>
+            <p class="eyebrow">Маркетингова операційна модель</p>
+            <h1>ПАВУТИНА ВОРКФЛОУ</h1>
+          </div>
+        </div>
+
+        <nav class="view-switcher" aria-label="Розділи додатку">
+          <button class="view-tab active" type="button" data-view="board">Екосистема</button>
+          <button class="view-tab" type="button" data-view="tasks">Задачник</button>
+          <button class="view-tab" type="button" data-view="analytics">Пульс</button>
+        </nav>
+
+        <div class="top-actions">
+          <span class="save-indicator" id="saveIndicator">Збережено локально</span>
+          <button class="ghost-button" type="button" id="exportState">Експорт</button>
+          <label class="ghost-button import-label" for="importState">Імпорт</label>
+          <input id="importState" type="file" accept="application/json" />
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="side-panel">
+          <section class="panel-section">
+            <p class="panel-title">Фокус тижня</p>
+            <div class="focus-box">
+              <strong>Прискорити шлях задачі</strong>
+              <span>від ідеї до запуску без втрати відповідальності, дедлайнів і статусів.</span>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <p class="panel-title">Команда</p>
+            <div class="team-list" id="teamList"></div>
+          </section>
+
+          <section class="panel-section">
+            <p class="panel-title">Швидкі фільтри</p>
+            <input class="field" id="searchTasks" type="search" placeholder="Пошук задачі, ЖК, каналу" />
+            <select class="field" id="filterAssignee">
+              <option value="all">Усі відповідальні</option>
+            </select>
+            <select class="field" id="filterPriority">
+              <option value="all">Усі пріоритети</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </section>
+
+          <section class="panel-section">
+            <p class="panel-title">Стан</p>
+            <div class="mini-stats" id="miniStats"></div>
+          </section>
+        </aside>
+
+        <section class="main-stage">
+          <section class="view active" id="boardView" aria-label="Екосистема відділу">
+            <div class="stage-header">
+              <div>
+                <p class="eyebrow">Miro-style карта</p>
+                <h2>Екосистема відділу</h2>
+              </div>
+              <div class="board-tools">
+                <button class="icon-button" type="button" id="zoomOut" title="Зменшити">-</button>
+                <span id="zoomValue">100%</span>
+                <button class="icon-button" type="button" id="zoomIn" title="Збільшити">+</button>
+                <button class="ghost-button" type="button" id="resetBoard">Центр</button>
+              </div>
+            </div>
+            <div class="canvas-shell">
+              <div class="canvas" id="workflowCanvas"></div>
+            </div>
+          </section>
+
+          <section class="view" id="tasksView" aria-label="Trello-style задачник">
+            <div class="stage-header task-stage-header">
+              <div>
+                <p class="eyebrow">Trello-style операційка</p>
+                <h2>Задачник</h2>
+              </div>
+              <button class="primary-button" type="button" id="addBlankTask">Нова картка</button>
+            </div>
+
+            <section class="task-inbox">
+              <div class="inbox-copy">
+                <p class="panel-title">Вхідні задачі</p>
+                <p>Напиши задачу людською мовою: що зробити, кому, дедлайн, пріоритет, канал або ЖК.</p>
+              </div>
+              <textarea id="taskInput" rows="3" placeholder="Наприклад: Наталі, зробити 3 SMM-пости для GPON у ЖК Варшавський, дедлайн до п'ятниці, пріоритет high"></textarea>
+              <div class="inbox-controls">
+                <select class="field" id="assigneeOverride">
+                  <option value="">Відповідальний з тексту</option>
+                </select>
+                <select class="field" id="laneOverride">
+                  <option value="todo">Одразу в TO DO</option>
+                  <option value="backlog">У Backlog</option>
+                  <option value="progress">У роботі</option>
+                </select>
+                <select class="field" id="priorityOverride">
+                  <option value="">Пріоритет з тексту</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+                <button class="primary-button" type="button" id="addSmartTask">Описати і додати</button>
+              </div>
+            </section>
+
+            <div class="kanban-board" id="kanbanBoard"></div>
+          </section>
+
+          <section class="view" id="analyticsView" aria-label="Пульс команди">
+            <div class="stage-header">
+              <div>
+                <p class="eyebrow">Операційний пульс</p>
+                <h2>Статуси, навантаження, ризики</h2>
+              </div>
+              <button class="ghost-button" type="button" id="resetDemo">Оновити демо-дані</button>
+            </div>
+            <div class="analytics-grid" id="analyticsGrid"></div>
+          </section>
+        </section>
+
+        <aside class="inspector" id="taskInspector" aria-label="Інспектор задачі">
+          <div class="empty-inspector">
+            <p class="panel-title">Інспектор</p>
+            <p>Обери картку в задачнику, щоб редагувати опис, дедлайн, чеклист і відповідального.</p>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
