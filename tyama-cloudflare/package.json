@@ -6,16 +6,14 @@
     "dev": "wrangler dev",
     "types": "wrangler types",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "node ./scripts/smoke-local.mjs",
     "check": "npm run types && npm run typecheck && npm test && wrangler deploy --dry-run",
     "db:migrate:local": "wrangler d1 migrations apply tyama-core --local",
     "db:migrate:remote": "wrangler d1 migrations apply tyama-core --remote",
     "bootstrap:remote": "node ./scripts/bootstrap-remote.mjs"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.0",
     "wrangler": "^4.0.0"
   }
 }
