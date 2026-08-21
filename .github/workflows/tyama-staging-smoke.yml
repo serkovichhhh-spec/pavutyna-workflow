@@ -1,0 +1,26 @@
+name: TYAMA staging smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tyama-staging/**'
+      - '.github/workflows/tyama-staging-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install --save-dev @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Run staging smoke test
+        run: npx playwright test tyama-staging/smoke.spec.js --project=chromium
