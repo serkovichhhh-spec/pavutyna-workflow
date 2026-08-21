@@ -10,25 +10,29 @@ function wrangler(args, options = {}) {
     cwd,
     encoding: 'utf8',
     stdio: options.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+    env: process.env,
   });
 }
 
 function databases() {
   const raw = wrangler(['d1', 'list', '--json'], { capture: true });
   const parsed = JSON.parse(raw);
-  if (Array.isArray(parsed)) return parsed;
-  if (Array.isArray(parsed.result)) return parsed.result;
-  return [];
+  const rows = Array.isArray(parsed) ? parsed : Array.isArray(parsed.result) ? parsed.result : [];
+  return rows.map((item) => ({ ...item, uuid: item?.uuid || item?.id || item?.database_id }));
+}
+
+if (!process.env.CLOUDFLARE_API_TOKEN || !process.env.CLOUDFLARE_ACCOUNT_ID) {
+  throw new Error('CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for remote bootstrap');
 }
 
 console.log('Checking Cloudflare authentication...');
-wrangler(['auth', 'token', '--json'], { capture: true });
+wrangler(['whoami']);
 
-let db = databases().find(item => item?.name === DB_NAME);
+let db = databases().find((item) => item?.name === DB_NAME);
 if (!db) {
   console.log(`Creating D1 database: ${DB_NAME}`);
   wrangler(['d1', 'create', DB_NAME]);
-  db = databases().find(item => item?.name === DB_NAME);
+  db = databases().find((item) => item?.name === DB_NAME);
 }
 
 if (!db?.uuid) throw new Error(`Could not resolve D1 UUID for ${DB_NAME}`);
