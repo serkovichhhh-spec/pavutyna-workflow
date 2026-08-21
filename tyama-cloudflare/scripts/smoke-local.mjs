@@ -10,6 +10,17 @@ function run(args) {
   execFileSync(npx, ['wrangler', ...args], { cwd, stdio: 'inherit' });
 }
 
+function expectD1Failure(sql, expectedFragment) {
+  try {
+    execFileSync(npx, ['wrangler', 'd1', 'execute', 'tyama-core', '--local', '--command', sql], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (error) {
+    const output = `${error.stdout || ''}\n${error.stderr || ''}`;
+    if (output.includes(expectedFragment)) return;
+    throw new Error(`D1 rejected invalid data, but not for expected reason: ${output.slice(-1500)}`);
+  }
+  throw new Error(`D1 accepted invalid cross-Event data; expected ${expectedFragment}`);
+}
+
 function hash(value) {
   return createHash('sha256').update(value).digest('hex');
 }
@@ -62,6 +73,18 @@ run(['d1', 'execute', 'tyama-core', '--local', '--command', `
 INSERT INTO hosts (id, email, display_name) VALUES ('host_other', 'other@tyama.local', 'Інший ведучий');
 INSERT INTO sessions (id, host_id, token_hash, expires_at)
 VALUES ('session_other', 'host_other', '${hash('tyama-other-session')}', '2099-01-01T00:00:00Z');
+INSERT INTO events (id,host_id,title,questionnaire_token,public_screen_token) VALUES ('guard_event_a','host_demo','Guard A','guard_q_a','guard_s_a');
+INSERT INTO questionnaires (id,event_id) VALUES ('guard_form_a','guard_event_a');
+INSERT INTO events (id,host_id,title,questionnaire_token,public_screen_token) VALUES ('guard_event_b','host_other','Guard B','guard_q_b','guard_s_b');
+INSERT INTO questionnaires (id,event_id) VALUES ('guard_form_b','guard_event_b');
+`]);
+expectD1Failure(
+  `INSERT INTO responses (id,event_id,questionnaire_id,respondent_label) VALUES ('guard_bad_response','guard_event_a','guard_form_b','Bad');`,
+  'response_event_questionnaire_mismatch'
+);
+run(['d1', 'execute', 'tyama-core', '--local', '--command', `
+DELETE FROM questionnaires WHERE id IN ('guard_form_a','guard_form_b');
+DELETE FROM events WHERE id IN ('guard_event_a','guard_event_b');
 `]);
 
 const child = spawn(npx, ['wrangler', 'dev', '--local', '--port', String(PORT)], {
