@@ -46,22 +46,20 @@ jobs:
           echo "url=$worker_url" >> "$GITHUB_OUTPUT"
           curl --fail --silent --show-error --retry 4 --retry-delay 2 "$worker_url/health" | grep -q '"ok":true'
       - name: Create ephemeral acceptance Host session
-        id: session
         shell: bash
         run: |
           set -e
           token="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")"
           echo "::add-mask::$token"
+          echo "TYAMA_ACCEPTANCE_SESSION_TOKEN=$token" >> "$GITHUB_ENV"
           hash="$(node -e "const c=require('crypto'); console.log(c.createHash('sha256').update(process.argv[1]).digest('hex'))" "$token")"
-          echo "token=$token" >> "$GITHUB_OUTPUT"
           npx wrangler d1 execute tyama-core-acceptance --remote --env acceptance --command "INSERT OR REPLACE INTO hosts (id,email,display_name) VALUES ('host_acceptance_ci','acceptance-ci@tyama.local','Acceptance CI'); INSERT OR REPLACE INTO sessions (id,host_id,token_hash,expires_at) VALUES ('session_acceptance_ci','host_acceptance_ci','$hash',datetime('now','+2 hours'));"
       - name: Run remote core E2E
         env:
           TYAMA_REMOTE_BASE: ${{ steps.worker.outputs.url }}
-          TYAMA_ACCEPTANCE_SESSION_TOKEN: ${{ steps.session.outputs.token }}
         run: node ./scripts/smoke-remote.mjs
       - name: Cleanup acceptance CI data
-        if: always() && steps.session.outputs.token != ''
+        if: always()
         shell: bash
         run: |
           npx wrangler d1 execute tyama-core-acceptance --remote --env acceptance --command "DELETE FROM hosts WHERE id='host_acceptance_ci';" || true
