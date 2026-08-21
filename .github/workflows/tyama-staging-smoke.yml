@@ -23,4 +23,4 @@ jobs:
           npm install --save-dev @playwright/test
           npx playwright install --with-deps chromium
       - name: Run staging smoke test
-        run: npx playwright test tyama-staging/smoke.spec.js --project=chromium
+        run: npx playwright test tyama-staging/smoke.spec.js
