@@ -73,7 +73,7 @@ run(['d1', 'execute', 'tyama-core', '--local', '--command', `
 INSERT INTO hosts (id, email, display_name) VALUES ('host_other', 'other@tyama.local', 'Інший ведучий');
 INSERT INTO sessions (id, host_id, token_hash, expires_at)
 VALUES ('session_other', 'host_other', '${hash('tyama-other-session')}', '2099-01-01T00:00:00Z');
-INSERT INTO events (id,host_id,title,questionnaire_token,public_screen_token) VALUES ('guard_event_a','host_demo','Guard A','guard_q_a','guard_s_a');
+INSERT INTO events (id,host_id,title,questionnaire_token,public_screen_token) VALUES ('guard_event_a','host_dev','Guard A','guard_q_a','guard_s_a');
 INSERT INTO questionnaires (id,event_id) VALUES ('guard_form_a','guard_event_a');
 INSERT INTO events (id,host_id,title,questionnaire_token,public_screen_token) VALUES ('guard_event_b','host_other','Guard B','guard_q_b','guard_s_b');
 INSERT INTO questionnaires (id,event_id) VALUES ('guard_form_b','guard_event_b');
