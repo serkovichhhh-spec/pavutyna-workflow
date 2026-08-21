@@ -31,6 +31,10 @@ async function login(page) {
   await expect(page.getByText('Ваші події')).toBeVisible();
 }
 
+function waitForKitPatch(page) {
+  return page.waitForResponse(r => r.url().includes('/api/events/') && r.url().includes('/kit/') && r.request().method() === 'PATCH' && r.ok(), { timeout: 10000 });
+}
+
 test('TYAMA staging core flow renders and Live controls Public Screen', async ({ page, context }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
@@ -120,9 +124,19 @@ test('TYAMA clean event end-to-end acceptance', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Event Kit' }).click();
   await expect(page.locator('[data-kit-id]').first()).toBeVisible({ timeout: 10000 });
   const firstCard = page.locator('[data-kit-id]').first();
-  await firstCard.locator('select[data-priv]').selectOption('public_allowed');
+
+  await Promise.all([
+    waitForKitPatch(page),
+    firstCard.locator('select[data-priv]').selectOption('public_allowed')
+  ]);
+
   const approve = firstCard.getByRole('button', { name: 'Відібрати' });
-  if (await approve.count()) await approve.click();
+  if (await approve.count()) {
+    await Promise.all([
+      waitForKitPatch(page),
+      approve.click()
+    ]);
+  }
 
   await page.getByRole('button', { name: 'Репетиція' }).click();
   const ready = page.getByRole('button', { name: 'Готово' }).first();
