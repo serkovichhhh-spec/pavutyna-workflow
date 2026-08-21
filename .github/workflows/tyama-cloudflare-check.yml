@@ -34,13 +34,13 @@ jobs:
           (
             npx wrangler types &&
             npx tsc --noEmit &&
-            npx wrangler d1 migrations apply tyama-core --local &&
+            npm test &&
             npx wrangler deploy --dry-run
           ) 2>&1 | tee ../tyama-cloudflare-check.log
           code=${PIPESTATUS[0]}
           if [ "$code" -eq 0 ]; then status=PASS; else status=FAIL; fi
           printf '{"status":"%s","sha":"%s","run_id":"%s","updated_at":"%s"}\n' "$status" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > ../.tyama-cloudflare-check.json
-          tail -n 160 ../tyama-cloudflare-check.log > ../.tyama-cloudflare-check.log
+          tail -n 200 ../tyama-cloudflare-check.log > ../.tyama-cloudflare-check.log
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0
       - name: Publish result
