@@ -1,20 +1,20 @@
 # ТЯМА — Production Foundation v0.2
 
-Status: **PROPOSED CHANGE**
+Status: **APPROVED**
+
+Approved decision: **Cloudflare Workers + D1 is the current production foundation for ТЯМА v0.2.**
+
+This approval is intentionally scoped to the current production foundation, not to permanent vendor lock-in. Product/domain logic must remain portable so that D1 can later be replaced by another relational persistence layer without rewriting the Host/Public product flow.
 
 ## Current state
 
 Validated staging MVP remains available on GitHub Pages and uses a temporary Supabase staging harness with one JSON state row. That environment is accepted for UX validation but is not a production persistence model.
 
-A Cloudflare foundation candidate now exists in `tyama-cloudflare/` and is intentionally isolated from validated staging.
+A Cloudflare foundation exists in `tyama-cloudflare/` and is intentionally isolated from validated staging.
 
-## Problem
+## Approved solution
 
-The previous proposal assumed a separate paid Supabase production project. Current resource constraints make that a poor fit now. Promoting the existing mixed Supabase project would also inherit unrelated public tables and security debt.
-
-## Proposed solution
-
-Use **Cloudflare Workers + D1** as the production-like foundation candidate.
+Use **Cloudflare Workers + D1** as the current production foundation.
 
 - Workers: Host/public API runtime.
 - D1: normalized Event-scoped relational persistence.
@@ -23,9 +23,9 @@ Use **Cloudflare Workers + D1** as the production-like foundation candidate.
 - R2: BACKLOG until media storage is required.
 - Workers AI / AI Gateway: BACKLOG until real AI integration is approved.
 - Host authentication transport/provider: **OPEN**. Session boundary is implemented, but Google/email/OAuth choice is not silently approved.
-- validated staging remains unchanged until the Cloudflare candidate passes acceptance.
+- validated staging remains unchanged until the Cloudflare remote candidate passes acceptance.
 
-## Why better
+## Why approved
 
 - no separate paid database project required for the current phase;
 - removes whole-Event JSON writes and staging race conditions;
@@ -33,14 +33,17 @@ Use **Cloudflare Workers + D1** as the production-like foundation candidate.
 - Worker API preserves the validated Host/Public contract instead of forcing a UI rewrite;
 - D1 schema preserves existing event/questionnaire context (`heroNames`, notes, lifecycle, questionnaire title/intro, question key/locked/privacyDefault, URL fields);
 - migration adapter can convert staging state without committing personal responses to the public repository;
-- future R2/AI additions can use Cloudflare bindings without changing Host/Public access semantics.
+- future R2/AI additions can use Cloudflare bindings without changing Host/Public access semantics;
+- architecture keeps business logic and API contract separable from the persistence provider.
 
-## Risks
+## Risks / portability rules
 
-- D1 is a platform choice and remains **PROPOSED CHANGE** until explicitly approved as the production infrastructure decision.
-- auth transport is still OPEN; a real Host login provider must be selected before production user onboarding.
-- realtime/offline requirements remain OPEN and may later require Durable Objects or another coordination layer.
-- data retention, deletion policy and legal privacy architecture remain OPEN.
+- Do not move product logic into Cloudflare-specific storage primitives unless there is a clear product reason.
+- Auth transport remains **OPEN** and must stay replaceable.
+- R2, Workers AI, Vectorize, Durable Objects and other Cloudflare services are not implicitly approved by this decision.
+- realtime/offline requirements remain **OPEN** and may later require a different coordination layer.
+- data retention, deletion policy and legal privacy architecture remain **OPEN**.
+- if D1 later becomes a constraint, persistence migration must be treated as an infrastructure-layer change, not a product rewrite.
 
 ## Impact
 
@@ -52,7 +55,7 @@ Foundation only. No new Host feature and no change to the validated MVP flow.
 
 ## Goal
 
-Replace temporary staging persistence with a low-operational-load, Event-isolated backend candidate while preserving:
+Replace temporary staging persistence with a low-operational-load, Event-isolated backend while preserving:
 
 `Host -> Event -> Questionnaire -> Responses -> Event Kit -> Rehearsal -> Live -> Public Screen`.
 
@@ -186,13 +189,13 @@ Automated Cloudflare gate must cover:
 
 ## Implementation order
 
-1. Keep staging frozen as accepted UX reference.
-2. Bring Cloudflare D1 schema/API to contract parity. **IN PROGRESS**
-3. Keep CI green with local HTTP E2E and negative isolation tests. **IN PROGRESS**
-4. Validate staging-to-D1 migration adapter using synthetic data.
+1. Keep staging frozen as accepted UX reference. **APPROVED**
+2. Cloudflare Workers + D1 as current production foundation. **APPROVED**
+3. Bring D1 schema/API to contract parity. **IN PROGRESS**
+4. Keep CI green with local HTTP E2E, migration adapter and negative isolation tests. **IN PROGRESS**
 5. Resolve Host auth transport. **OPEN**
-6. Create remote D1/Worker only after Cloudflare infrastructure decision is explicitly approved and account write access is available.
-7. Connect validated frontend to candidate Worker in a separate acceptance environment.
+6. Create remote D1/Worker when account write access is available.
+7. Connect validated frontend to Worker in a separate acceptance environment.
 8. Run full browser acceptance again.
 9. Only after green foundation: real AI.
 10. Media storage after AI/core persistence is stable.
