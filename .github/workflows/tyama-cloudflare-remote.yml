@@ -31,19 +31,18 @@ jobs:
       - name: Validate locally before remote mutation
         run: npm run check
       - name: Bootstrap D1 and deploy Worker
-        run: npm run bootstrap:remote
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run bootstrap:remote 2>&1 | tee ../tyama-cloudflare-remote-deploy.log
       - name: Resolve Worker URL and health check
         id: health
         shell: bash
         run: |
           set -e
-          deploy_out="$(npx wrangler deployments status 2>&1 || true)"
-          echo "$deploy_out"
-          worker_url="$(printf '%s\n' "$deploy_out" | grep -Eo 'https://[^ ]+\.workers\.dev' | head -n1 || true)"
-          if [ -z "$worker_url" ]; then
-            worker_url="https://tyama-core.workers.dev"
-          fi
-          health="$(curl -fsS "$worker_url/health")"
+          worker_url="$(grep -Eo 'https://[^ ]+\.workers\.dev' ../tyama-cloudflare-remote-deploy.log | tail -n1 || true)"
+          test -n "$worker_url" || { echo 'Could not resolve workers.dev URL from Wrangler deploy output'; exit 1; }
+          health="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 "$worker_url/health")"
           printf '%s' "$health" | grep -q '"ok":true'
           printf '{"status":"PASS","sha":"%s","run_id":"%s","worker_url":"%s","updated_at":"%s"}\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$worker_url" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > ../.tyama-cloudflare-remote.json
       - name: Publish remote status
