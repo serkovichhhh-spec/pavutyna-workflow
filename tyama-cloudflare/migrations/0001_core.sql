@@ -25,6 +25,9 @@ CREATE TABLE events (
   event_type TEXT NOT NULL DEFAULT 'Подія',
   event_date TEXT,
   venue TEXT,
+  hero_names TEXT,
+  notes TEXT,
+  lifecycle TEXT NOT NULL DEFAULT 'preparing',
   questionnaire_token TEXT NOT NULL UNIQUE,
   public_screen_token TEXT NOT NULL UNIQUE,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -35,6 +38,8 @@ CREATE INDEX idx_events_host_id ON events(host_id);
 CREATE TABLE questionnaires (
   id TEXT PRIMARY KEY,
   event_id TEXT NOT NULL UNIQUE REFERENCES events(id) ON DELETE CASCADE,
+  title TEXT,
+  intro TEXT,
   is_open INTEGER NOT NULL DEFAULT 1 CHECK (is_open IN (0,1)),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -44,9 +49,12 @@ CREATE TABLE questions (
   id TEXT PRIMARY KEY,
   questionnaire_id TEXT NOT NULL REFERENCES questionnaires(id) ON DELETE CASCADE,
   position INTEGER NOT NULL,
+  question_key TEXT,
   label TEXT NOT NULL,
-  field_type TEXT NOT NULL DEFAULT 'text' CHECK (field_type IN ('text','textarea','select')),
+  field_type TEXT NOT NULL DEFAULT 'text' CHECK (field_type IN ('text','textarea','select','url')),
   is_required INTEGER NOT NULL DEFAULT 0 CHECK (is_required IN (0,1)),
+  is_locked INTEGER NOT NULL DEFAULT 0 CHECK (is_locked IN (0,1)),
+  privacy_default TEXT NOT NULL DEFAULT 'review_required' CHECK (privacy_default IN ('review_required','host_only','public_allowed')),
   options_json TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
