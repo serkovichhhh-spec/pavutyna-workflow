@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tyama-core",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-21",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
