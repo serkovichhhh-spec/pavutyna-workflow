@@ -1,6 +1,6 @@
 # ТЯМА — Cloudflare foundation
 
-Статус: **PROPOSED CHANGE / implementation spike**. Це окремий production-like backend foundation. Validated staging flow у `tyama-staging/` не змінюється.
+Статус: **APPROVED — current production foundation v0.2**. Це поточний infrastructure layer, а не незворотний vendor lock-in. Validated staging flow у `tyama-staging/` не змінюється до окремого remote acceptance.
 
 ## Goal
 
@@ -21,12 +21,13 @@
 
 `migrations/0002_event_integrity.sql` додає DB-level guards проти cross-Event / cross-questionnaire зв’язків.
 
-`src/index.ts` реалізує core API contract:
+`src/index.ts` реалізує core API contract, сумісний із validated staging UI:
 
 - `GET /health`
 - `GET /api/events`
 - `POST /api/events`
 - `GET /api/events/:eventId`
+- `PUT /api/events/:eventId/questionnaire`
 - `PATCH /api/events/:eventId/kit/:itemId`
 - `PATCH /api/events/:eventId/rehearsal`
 - `POST /api/events/:eventId/live`
@@ -34,6 +35,17 @@
 - `GET /api/public/screen/:token`
 
 Host routes вимагають cookie `tyama_session`; у DB зберігається тільки SHA-256 hash token-а.
+
+## Validation gate
+
+`npm run check` та GitHub Actions перевіряють:
+
+- generated Wrangler bindings;
+- TypeScript;
+- synthetic staging→D1 migration adapter;
+- D1 migrations та negative cross-Event integrity checks;
+- реальний HTTP core flow через `wrangler dev`;
+- deploy dry-run.
 
 ## Local development
 
@@ -49,21 +61,15 @@ Local test session cookie:
 
 `dev/seed.sql` must never be applied remotely.
 
-## Before first remote deploy
+## Remote bootstrap
 
-Create D1 and replace the bootstrap zero UUID in `wrangler.jsonc` with the real database id:
+`npm run bootstrap:remote` automates the first remote foundation bootstrap: resolve/create D1, write its database id to Wrangler config, apply migrations, run deploy dry-run and deploy only after validation succeeds.
 
-`npx wrangler d1 create tyama-core`
+Local seed and staging personal-data export are not deployed by this bootstrap.
 
-Then:
+## Auth boundary — OPEN transport
 
-`npx wrangler d1 migrations apply tyama-core --remote`
-
-`npx wrangler deploy --dry-run`
-
-Only after a green dry-run: `npx wrangler deploy`.
-
-## Auth boundary
+Cloudflare Workers + D1 are APPROVED. The production Host authentication transport/provider is still **OPEN**.
 
 The core does not lock ТЯМА into an email/OAuth vendor. `sessions` is the stable application boundary. A later auth transport only needs to create/revoke sessions; Event, questionnaire, Kit and Live APIs do not change.
 
@@ -93,4 +99,4 @@ The Worker checks this before changing `live_state`, and Public Screen checks it
 - analytics/CRM/booking;
 - system-admin UI.
 
-These stay out of scope until the foundation itself is green.
+These stay out of scope until the remote foundation acceptance itself is green.
