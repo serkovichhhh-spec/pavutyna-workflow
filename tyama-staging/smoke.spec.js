@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 const ROOT = 'https://serkovichhhh-spec.github.io/pavutyna-workflow/tyama-staging/';
+const API = 'https://mmntbwgiwrctvhupksyh.supabase.co/functions/v1/tyama-staging-cors';
 const DEMO_Q = 'f48eb9af4412a67861d20118e5ad5f16fb71';
 const DEMO_SCREEN = '1b606782c7dcacab78c974b5af1faf9afdd4';
 
@@ -169,4 +170,19 @@ test('TYAMA clean event end-to-end acceptance', async ({ page, context }) => {
   expect(screenErrors, 'Public Screen JS errors').toEqual([]);
 });
 
-// Backend mutation path is atomic in staging; this touch intentionally re-runs E2E after backend switch.
+test('TYAMA acceptance artifacts are cleaned after E2E', async ({ request }) => {
+  const list = await request.get(API + '/api/events');
+  expect(list.ok()).toBeTruthy();
+  const data = await list.json();
+  const generated = data.events.filter(e => /^Acceptance [0-9]+$/.test(e.title || ''));
+
+  for (const event of generated) {
+    const removed = await request.delete(API + '/api/test/events/' + event.id);
+    expect(removed.ok()).toBeTruthy();
+  }
+
+  const verify = await request.get(API + '/api/events');
+  expect(verify.ok()).toBeTruthy();
+  const after = await verify.json();
+  expect(after.events.filter(e => /^Acceptance [0-9]+$/.test(e.title || ''))).toHaveLength(0);
+});
