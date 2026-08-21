@@ -45,12 +45,26 @@ jobs:
           exit 0
       - name: Publish result
         working-directory: .
+        shell: bash
         run: |
+          set -e
           git config user.name 'tyama-ci'
           git config user.email 'tyama-ci@users.noreply.github.com'
           git add .tyama-cloudflare-check.json .tyama-cloudflare-check.log
-          git diff --cached --quiet || git commit -m 'Update TYAMA Cloudflare check status'
-          git push
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Update TYAMA Cloudflare check status'
+          for attempt in 1 2; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 2 ]; then
+              exit 1
+            fi
+          done
       - name: Fail when validation fails
         if: steps.validate.outputs.exit_code != '0'
         working-directory: .
