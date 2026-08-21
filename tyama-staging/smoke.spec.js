@@ -168,3 +168,5 @@ test('TYAMA clean event end-to-end acceptance', async ({ page, context }) => {
   expect(respondentErrors, 'Respondent JS errors').toEqual([]);
   expect(screenErrors, 'Public Screen JS errors').toEqual([]);
 });
+
+// Backend mutation path is atomic in staging; this touch intentionally re-runs E2E after backend switch.
