@@ -9,13 +9,14 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: tyama-cloudflare
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TYAMA_REMOTE_ENV: acceptance
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,22 +31,47 @@ jobs:
         run: npm install
       - name: Validate locally before remote mutation
         run: npm run check
-      - name: Bootstrap D1 and deploy Worker
+      - name: Bootstrap acceptance D1 and deploy Worker
         shell: bash
         run: |
           set -o pipefail
           npm run bootstrap:remote 2>&1 | tee ../tyama-cloudflare-remote-deploy.log
-      - name: Resolve Worker URL and health check
-        id: health
+      - name: Resolve Worker URL
+        id: worker
         shell: bash
         run: |
           set -e
           worker_url="$(grep -Eo 'https://[^ ]+\.workers\.dev' ../tyama-cloudflare-remote-deploy.log | tail -n1 || true)"
           test -n "$worker_url" || { echo 'Could not resolve workers.dev URL from Wrangler deploy output'; exit 1; }
-          health="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 "$worker_url/health")"
-          printf '%s' "$health" | grep -q '"ok":true'
-          printf '{"status":"PASS","sha":"%s","run_id":"%s","worker_url":"%s","updated_at":"%s"}\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$worker_url" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > ../.tyama-cloudflare-remote.json
+          echo "url=$worker_url" >> "$GITHUB_OUTPUT"
+          curl --fail --silent --show-error --retry 4 --retry-delay 2 "$worker_url/health" | grep -q '"ok":true'
+      - name: Create ephemeral acceptance Host session
+        id: session
+        shell: bash
+        run: |
+          set -e
+          token="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")"
+          echo "::add-mask::$token"
+          hash="$(node -e "const c=require('crypto'); console.log(c.createHash('sha256').update(process.argv[1]).digest('hex'))" "$token")"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+          npx wrangler d1 execute tyama-core-acceptance --remote --env acceptance --command "INSERT OR REPLACE INTO hosts (id,email,display_name) VALUES ('host_acceptance_ci','acceptance-ci@tyama.local','Acceptance CI'); INSERT OR REPLACE INTO sessions (id,host_id,token_hash,expires_at) VALUES ('session_acceptance_ci','host_acceptance_ci','$hash',datetime('now','+2 hours'));"
+      - name: Run remote core E2E
+        env:
+          TYAMA_REMOTE_BASE: ${{ steps.worker.outputs.url }}
+          TYAMA_ACCEPTANCE_SESSION_TOKEN: ${{ steps.session.outputs.token }}
+        run: node ./scripts/smoke-remote.mjs
+      - name: Cleanup acceptance CI data
+        if: always() && steps.session.outputs.token != ''
+        shell: bash
+        run: |
+          npx wrangler d1 execute tyama-core-acceptance --remote --env acceptance --command "DELETE FROM hosts WHERE id='host_acceptance_ci';" || true
+      - name: Write remote PASS status
+        if: success()
+        shell: bash
+        run: |
+          printf '{"status":"PASS","sha":"%s","run_id":"%s","environment":"acceptance","worker_url":"%s","updated_at":"%s"}\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "${{ steps.worker.outputs.url }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > ../.tyama-cloudflare-remote.json
       - name: Publish remote status
+        if: success()
         working-directory: .
         shell: bash
         run: |
