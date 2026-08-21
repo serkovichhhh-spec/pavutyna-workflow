@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run types && npm run typecheck && wrangler deploy --dry-run",
     "db:migrate:local": "wrangler d1 migrations apply tyama-core --local",
-    "db:migrate:remote": "wrangler d1 migrations apply tyama-core --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply tyama-core --remote",
+    "bootstrap:remote": "node ./scripts/bootstrap-remote.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.2",
