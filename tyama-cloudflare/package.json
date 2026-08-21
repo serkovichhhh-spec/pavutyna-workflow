@@ -1,0 +1,17 @@
+{
+  "name": "tyama-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "types": "wrangler types",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run types && npm run typecheck && wrangler deploy --dry-run",
+    "db:migrate:local": "wrangler d1 migrations apply tyama-core --local",
+    "db:migrate:remote": "wrangler d1 migrations apply tyama-core --remote"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "wrangler": "^4.0.0"
+  }
+}
