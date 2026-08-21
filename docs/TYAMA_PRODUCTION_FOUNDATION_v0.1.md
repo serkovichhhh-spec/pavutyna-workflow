@@ -1,61 +1,50 @@
-# ТЯМА — Production Foundation v0.1
+# ТЯМА — Production Foundation v0.2
 
 Status: **PROPOSED CHANGE**
 
 ## Current state
 
-Validated staging MVP uses:
-- static GitHub Pages UI;
-- Supabase Edge Functions as staging API adapters;
-- one temporary JSON state row for staging persistence;
-- deterministic local processor instead of real AI;
-- no production auth, production media storage, billing or production analytics.
+Validated staging MVP remains available on GitHub Pages and uses a temporary Supabase staging harness with one JSON state row. That environment is accepted for UX validation but is not a production persistence model.
 
-The current Supabase project also contains unrelated/legacy public tables with separate security issues. It must not be treated as the production source of truth for ТЯМА.
+A Cloudflare foundation candidate now exists in `tyama-cloudflare/` and is intentionally isolated from validated staging.
 
 ## Problem
 
-The staging architecture is sufficient for UX acceptance, but not for production:
-- one JSON state row is not a safe multi-user persistence model;
-- Host ownership is not enforced with production identity;
-- public questionnaire/Public Screen access is token-based but not backed by a normalized event model;
-- unrelated public tables in the current Supabase project increase operational and security risk;
-- production infrastructure is still OPEN in MASTER CONTEXT.
+The previous proposal assumed a separate paid Supabase production project. Current resource constraints make that a poor fit now. Promoting the existing mixed Supabase project would also inherit unrelated public tables and security debt.
 
 ## Proposed solution
 
-Use a **separate production Supabase project** for ТЯМА instead of promoting the mixed staging project.
+Use **Cloudflare Workers + D1** as the production-like foundation candidate.
 
-Foundation stack:
-- Supabase Auth for Host identity;
-- normalized Postgres tables for Event-scoped data;
-- Row Level Security on every Host-owned table;
-- server-side/Edge Function routes for anonymous respondent and Public Screen token access;
-- service-role access only inside trusted server functions;
-- real AI remains behind an internal provider interface and is NOT enabled in this foundation step;
-- media storage remains a later isolated step after auth/persistence is green;
-- validated staging remains untouched as a demo/acceptance environment.
+- Workers: Host/public API runtime.
+- D1: normalized Event-scoped relational persistence.
+- server-side session records: Host access boundary.
+- opaque questionnaire/Public Screen tokens: anonymous scoped access.
+- R2: BACKLOG until media storage is required.
+- Workers AI / AI Gateway: BACKLOG until real AI integration is approved.
+- Host authentication transport/provider: **OPEN**. Session boundary is implemented, but Google/email/OAuth choice is not silently approved.
+- validated staging remains unchanged until the Cloudflare candidate passes acceptance.
 
 ## Why better
 
-- preserves Event isolation structurally;
-- removes dependence on a shared JSON document and write races;
-- separates production risk from the current mixed Supabase project;
-- gives production-safe Host ownership and permissions;
-- keeps public respondent/Public Screen surfaces narrow and token-scoped;
-- allows AI and media to be added later without changing the Host/Public access model;
-- minimizes migration risk because staging UX and routes can be preserved.
+- no separate paid database project required for the current phase;
+- removes whole-Event JSON writes and staging race conditions;
+- Event isolation is enforced in both API ownership checks and D1 integrity triggers;
+- Worker API preserves the validated Host/Public contract instead of forcing a UI rewrite;
+- D1 schema preserves existing event/questionnaire context (`heroNames`, notes, lifecycle, questionnaire title/intro, question key/locked/privacyDefault, URL fields);
+- migration adapter can convert staging state without committing personal responses to the public repository;
+- future R2/AI additions can use Cloudflare bindings without changing Host/Public access semantics.
 
 ## Risks
 
-- new Supabase project has infrastructure cost;
-- data migration from staging should be limited to fictional/demo seed data, not treated as production migration;
-- auth changes require updating Host session handling;
-- hosting provider for production frontend remains OPEN and should not be silently coupled to Vercel or GitHub Pages.
+- D1 is a platform choice and remains **PROPOSED CHANGE** until explicitly approved as the production infrastructure decision.
+- auth transport is still OPEN; a real Host login provider must be selected before production user onboarding.
+- realtime/offline requirements remain OPEN and may later require Durable Objects or another coordination layer.
+- data retention, deletion policy and legal privacy architecture remain OPEN.
 
 ## Impact
 
-Production foundation only. No new user-facing feature and no change to validated MVP flow.
+Foundation only. No new Host feature and no change to the validated MVP flow.
 
 ---
 
@@ -63,207 +52,149 @@ Production foundation only. No new user-facing feature and no change to validate
 
 ## Goal
 
-Replace temporary staging persistence/auth assumptions with a production-safe foundation while preserving the already validated ТЯМА MVP workflow.
+Replace temporary staging persistence with a low-operational-load, Event-isolated backend candidate while preserving:
 
-## Current state
-
-Validated flow:
-`Host access -> Dashboard -> Create Event -> Questionnaire -> public response -> Responses -> Event Kit -> Rehearsal -> Live -> Public Screen`.
-
-Current staging must remain available and must not be rewritten during production foundation work.
+`Host -> Event -> Questionnaire -> Responses -> Event Kit -> Rehearsal -> Live -> Public Screen`.
 
 ## Required behaviour
 
-1. A Host authenticates with a real account.
-2. A Host can read/write only Events they own.
-3. Every Event has isolated Questionnaire, Questions, Responses, Event Kit, Rehearsal and Live state.
-4. Respondents do not need Host accounts.
-5. A respondent can submit only to the Event resolved by a scoped questionnaire token.
-6. Public Screen can read only the sanitized current public state resolved by a scoped public token.
-7. `host_only` and `review_required` material can never be returned by the Public Screen endpoint.
-8. `public_allowed` material still requires Host selection/approval before Live use.
-9. No service-role key or privileged backend credential is exposed to the browser.
-10. System Admin remains outside Host Dashboard scope.
+1. Host requests require a valid server-side session.
+2. Every Host Event read/write is scoped by `host_id`.
+3. Cross-Host Event IDs return not-found behaviour.
+4. Questionnaire token resolves to exactly one Event/questionnaire.
+5. Submitted answers are accepted only for questions belonging to that questionnaire.
+6. D1 rejects Event/questionnaire mismatches even if application code regresses.
+7. Event Kit mutations update individual rows, never a whole Event JSON document.
+8. Live can show only `approved + public_allowed` items.
+9. Public Screen returns only a sanitized live payload.
+10. Questionnaire/Public Screen remain anonymous token-scoped surfaces.
+11. AI failure or absence cannot block the core Event workflow.
+12. No infrastructure controls appear in Host Dashboard.
+
+## Data / permissions
+
+Current D1 model:
+
+- `hosts`
+- `sessions`
+- `events`
+- `questionnaires`
+- `questions`
+- `responses`
+- `response_answers`
+- `kit_items`
+- `rehearsal_items`
+- `live_state`
+
+Event context preserved in schema:
+- event type/date/venue;
+- hero names;
+- notes;
+- lifecycle;
+- questionnaire title/intro/open state;
+- question key/type/required/locked/privacy default/options.
+
+Integrity triggers enforce:
+- response questionnaire belongs to response Event;
+- answer question belongs to response questionnaire;
+- source response for Kit belongs to same Event;
+- rehearsal item belongs to same Event;
+- live item belongs to same Event.
 
 ## User flow
 
 ### Host
 
-1. Sign in.
+1. Authenticate through future approved auth transport and receive server session.
 2. See only owned Events.
 3. Create Event.
-4. Configure questionnaire.
-5. Copy/open respondent link.
+4. Edit questionnaire labels/context.
+5. Share respondent URL.
 6. Receive responses in the correct Event.
-7. Work with Event Kit.
-8. Edit/privacy/approve material.
-9. Rehearse.
-10. Enter Live.
-11. Push only eligible material to Public Screen.
-12. Clear Public Screen.
+7. Review/edit/privacy/approve Event Kit items.
+8. Mark rehearsal readiness.
+9. Enter Live.
+10. Show eligible item or clear Public Screen.
 
 ### Respondent
 
-1. Open questionnaire token URL on mobile.
-2. See only questionnaire data required for that Event.
-3. Submit answers.
+1. Open token URL.
+2. See only that Event questionnaire.
+3. Submit required answers.
 4. Receive success state.
-5. Gain no Host or other Event access.
+5. Gain no Host access.
 
 ### Public Screen
 
 1. Open public token URL.
-2. Read only current sanitized live payload.
-3. Never receive Host-only metadata or raw responses.
-
-## UI states
-
-Must preserve the validated staging states:
-- Host access/sign-in;
-- Dashboard empty/populated;
-- Event overview;
-- Questionnaire edit;
-- Responses empty/populated;
-- Event Kit draft/approved/do-not-use/removed;
-- privacy: `host_only`, `review_required`, `public_allowed`;
-- Rehearsal;
-- Live blank/item;
-- Public Screen blank/item;
-- respondent success/error.
-
-No production infrastructure controls appear in Host UI.
-
-## Data / permissions
-
-Minimum normalized model:
-
-- `profiles`
-  - `id uuid` = auth user id
-  - Host-facing profile fields only
-
-- `events`
-  - `id uuid`
-  - `host_id uuid`
-  - event metadata
-  - lifecycle
-  - questionnaire token hash/reference
-  - public screen token hash/reference
-
-- `questionnaires`
-  - one active questionnaire per Event for MVP
-
-- `questions`
-  - belongs to questionnaire + Event
-  - type, label, required, order, privacy/default processing metadata
-
-- `responses`
-  - belongs to Event + questionnaire
-  - respondent label
-  - submitted timestamp
-
-- `answers`
-  - belongs to response + question + Event
-
-- `event_kit_items`
-  - belongs to Event
-  - category, title, body
-  - provenance
-  - status
-  - useful
-  - privacy
-  - edited/source metadata
-
-- `rehearsal_states`
-  - belongs to Event + kit item
-
-- `live_states`
-  - one current state per Event
-  - current item nullable
-  - mode + updated timestamp
-
-Permissions:
-- all Host-owned tables: RLS enabled;
-- Host CRUD requires `host_id = auth.uid()` through Event ownership;
-- respondent writes go through a trusted function that resolves questionnaire token -> Event and inserts only allowed fields;
-- Public Screen reads go through a trusted function that resolves public token and returns sanitized payload only;
-- no anonymous direct SELECT on Host tables;
-- no anonymous direct RPC to privileged maintenance functions;
-- service-role only in server environment.
+2. Receive blank state or one sanitized approved/public item.
+3. Never receive raw responses or Host-only context.
 
 ## Edge cases
 
-- invalid/expired questionnaire token -> not found/closed state;
-- duplicate or replayed respondent submission -> defined idempotency/rate-limit strategy before production launch;
-- Host attempts another Host's Event ID -> indistinguishable not-found/forbidden response;
-- Event deleted/archived while respondent form is open -> safe submit failure;
-- Live item loses `public_allowed` or approval -> Public Screen must stop returning it on next read;
-- simultaneous Host edits -> use row-level database updates/transactions, never whole-Event JSON replacement;
-- missing AI result -> Event remains usable; AI failure does not block questionnaire/Host data access;
-- weak network/offline behaviour remains OPEN and is not invented here.
+- invalid/closed questionnaire token -> safe error;
+- forged question ID from another questionnaire -> rejected;
+- Event A + questionnaire B persistence attempt -> D1 trigger rejection;
+- Host B requests Host A Event -> 404-like response;
+- item loses approval/privacy -> no longer eligible for Public Screen;
+- simultaneous Kit mutations -> row-level D1 updates, no shared JSON overwrite;
+- acceptance-generated Events -> excluded by migration adapter unless explicitly requested;
+- generated migration SQL may contain personal data and is ignored by git under `tyama-cloudflare/tmp/`.
 
 ## Acceptance criteria
 
-1. Two test Hosts cannot read or mutate each other's Events.
-2. New Event is visible only to its Host.
-3. Questionnaire token submits into exactly one Event.
-4. Response appears in that Event and nowhere else.
-5. Event Kit item privacy/status mutations are atomic under concurrent requests.
-6. `host_only` never appears in Live eligibility or Public Screen response.
-7. `review_required` never appears in Public Screen response.
-8. only approved + `public_allowed` can be shown live.
-9. clearing Live immediately returns Public Screen to blank state.
-10. anonymous client cannot query raw responses/answers/Event Kit through PostgREST.
-11. browser bundle contains no service-role key.
-12. automated E2E reproduces the validated staging flow against production-foundation environment.
-13. security advisor has no ТЯМА-owned RLS/public-execution errors.
+1. Wrangler generated bindings succeed.
+2. TypeScript typecheck succeeds.
+3. D1 migrations apply locally.
+4. D1 cross-Event negative integrity test passes.
+5. Local HTTP E2E passes:
+   `Host session -> Event -> public questionnaire -> submit -> Event Kit -> questionnaire edit -> privacy -> approve -> rehearsal -> live -> Public Screen -> clear`.
+6. Cross-Host Event access returns not-found.
+7. Public Screen exposes only sanitized approved/public content.
+8. Worker deploy dry-run succeeds.
+9. migration adapter preserves validated staging context without committing real data.
+10. validated staging remains unaffected.
 
 ## What must not change
 
 - public name: ТЯМА;
-- Event as central isolated context;
+- Event as isolated central context;
 - Host Dashboard as Host surface;
 - questionnaire mobile-first;
 - Event Kit desktop-first;
 - Host/Public Screen separation;
 - privacy semantics;
-- Host remains final decision-maker;
+- Host is final decision-maker;
 - no ChatGPT/system/backend/admin exposure to Host;
-- no real AI or media storage added inside this foundation task;
-- validated staging URL remains available during migration work.
+- no production AI or media added in this foundation task.
 
 ## Tests
 
-Minimum automated suite:
-
-1. auth sign-in/sign-out/session expiry;
-2. Host A vs Host B Event isolation;
-3. Event create/read/update ownership;
-4. questionnaire CRUD within Event;
-5. anonymous questionnaire token GET/POST;
-6. invalid token and closed questionnaire;
-7. response/event isolation;
-8. Event Kit atomic mutation/concurrency;
-9. privacy matrix tests;
-10. rehearsal state ownership;
-11. Live show/blank authorization;
-12. Public Screen sanitized payload;
-13. browser E2E clean Event flow;
-14. security/RLS regression test;
-15. public UI brand regression: ТЯМА only, no internal technical name.
-
----
+Automated Cloudflare gate must cover:
+- generated binding/type compatibility;
+- migrations;
+- database integrity rejection tests;
+- Host ownership isolation;
+- public questionnaire GET/POST;
+- questionnaire edit compatibility;
+- Event context serialization compatibility;
+- Event Kit privacy/approval;
+- rehearsal;
+- Live show/blank;
+- Public Screen sanitization;
+- Wrangler dry-run.
 
 ## Implementation order
 
-1. Approve production project isolation decision.
-2. Create separate production Supabase project.
-3. Apply normalized schema + RLS migrations.
-4. Add Host Auth and ownership checks.
-5. Add respondent/public token server functions.
-6. Port Event persistence from staging adapter to production repository/data layer without changing UI flow.
-7. Run isolation/security tests.
-8. Run full browser acceptance.
-9. Only after green foundation: AI provider integration.
-10. Only after AI foundation is stable: media storage.
+1. Keep staging frozen as accepted UX reference.
+2. Bring Cloudflare D1 schema/API to contract parity. **IN PROGRESS**
+3. Keep CI green with local HTTP E2E and negative isolation tests. **IN PROGRESS**
+4. Validate staging-to-D1 migration adapter using synthetic data.
+5. Resolve Host auth transport. **OPEN**
+6. Create remote D1/Worker only after Cloudflare infrastructure decision is explicitly approved and account write access is available.
+7. Connect validated frontend to candidate Worker in a separate acceptance environment.
+8. Run full browser acceptance again.
+9. Only after green foundation: real AI.
+10. Media storage after AI/core persistence is stable.
 
-Production hosting provider, data retention, full privacy architecture, offline fallback, billing and System Admin remain OPEN.
+Production domain, auth provider, retention/deletion policy, offline fallback, billing and System Admin remain **OPEN**.
