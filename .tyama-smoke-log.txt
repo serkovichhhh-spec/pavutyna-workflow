@@ -1,32 +1,4 @@
 
 Running 2 tests using 1 worker
-·F
-
-  1) tyama-staging/smoke.spec.js:73:1 › TYAMA clean event end-to-end acceptance ────────────────────
-
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: getByRole('button', { name: 'Показати' }).first()
-    Expected: visible
-    Timeout: 10000ms
-    Error: element(s) not found
-
-    Call log:
-      - Expect "toBeVisible" with timeout 10000ms
-      - waiting for getByRole('button', { name: 'Показати' }).first()
-
-
-      144 |
-      145 |   const show = page.getByRole('button', { name: 'Показати' }).first();
-    > 146 |   await expect(show).toBeVisible({ timeout: 10000 });
-          |                      ^
-      147 |   await show.click();
-      148 |   await expect(publicScreen.getByText('Екран готовий')).not.toBeVisible({ timeout: 5000 });
-      149 |
-        at /home/runner/work/pavutyna-workflow/pavutyna-workflow/tyama-staging/smoke.spec.js:146:22
-
-    Error Context: test-results/tyama-staging-smoke-TYAMA-clean-event-end-to-end-acceptance/error-context.md
-
-  1 failed
-    tyama-staging/smoke.spec.js:73:1 › TYAMA clean event end-to-end acceptance ─────────────────────
-  1 passed (33.9s)
+··
+  2 passed (25.7s)
