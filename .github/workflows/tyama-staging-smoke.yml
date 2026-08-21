@@ -8,6 +8,9 @@ on:
       - '.github/workflows/tyama-staging-smoke.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -23,4 +26,25 @@ jobs:
           npm install --save-dev @playwright/test
           npx playwright install --with-deps chromium
       - name: Run staging smoke test
-        run: npx playwright test tyama-staging/smoke.spec.js
+        id: smoke
+        shell: bash
+        run: |
+          set +e
+          npx playwright test tyama-staging/smoke.spec.js 2>&1 | tee tyama-smoke.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -eq 0 ]; then status=PASS; else status=FAIL; fi
+          printf '{"status":"%s","sha":"%s","run_id":"%s","updated_at":"%s"}\n' "$status" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .tyama-smoke-status.json
+          tail -n 120 tyama-smoke.log > .tyama-smoke-log.txt
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Publish smoke result
+        shell: bash
+        run: |
+          git config user.name 'tyama-ci'
+          git config user.email 'tyama-ci@users.noreply.github.com'
+          git add .tyama-smoke-status.json .tyama-smoke-log.txt
+          git diff --cached --quiet || git commit -m 'Update TYAMA staging smoke status'
+          git push
+      - name: Fail workflow when acceptance fails
+        if: steps.smoke.outputs.exit_code != '0'
+        run: exit 1
