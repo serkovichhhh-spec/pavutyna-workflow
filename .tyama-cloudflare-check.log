@@ -1,0 +1,79 @@
+
+ ⛅️ wrangler 4.125.0
+────────────────────
+Generating project types...
+
+interface __BaseEnv_Env {
+	DB: D1Database;
+}
+declare namespace Cloudflare {
+	interface GlobalProps {
+		mainModule: typeof import("./src/index");
+	}
+	interface Env extends __BaseEnv_Env {}
+}
+interface Env extends __BaseEnv_Env {}
+
+Generating runtime types...
+
+Runtime types generated.
+
+
+✨ Types written to worker-configuration.d.ts
+
+Action required Install @types/node
+Since your Worker has Node.js compatibility enabled, you should install Node.js types by running "npm i --save-dev @types/node".
+
+📖 Read about runtime types
+https://developers.cloudflare.com/workers/languages/typescript/#generate-types
+📣 Remember to rerun 'wrangler types' after you change your wrangler.jsonc file.
+
+
+ ⛅️ wrangler 4.125.0
+────────────────────
+Resource location: local 
+
+Use --remote if you want to access the remote instance.
+
+Migrations to be applied:
+┌──────────────────────────┐
+│ name                     │
+├──────────────────────────┤
+│ 0001_core.sql            │
+├──────────────────────────┤
+│ 0002_event_integrity.sql │
+└──────────────────────────┘
+? About to apply 2 migration(s)
+Your database may not be available to serve requests during the migration, continue?
+🤖 Using fallback value in non-interactive context: yes
+🌀 Executing on local database tyama-core (00000000-0000-0000-0000-000000000000) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 19 commands executed successfully.
+┌──────────────────────────┬────────┐
+│ name                     │ status │
+├──────────────────────────┼────────┤
+│ 0001_core.sql            │ ✅     │
+├──────────────────────────┼────────┤
+│ 0002_event_integrity.sql │ 🕒️    │
+└──────────────────────────┴────────┘
+🌀 Executing on local database tyama-core (00000000-0000-0000-0000-000000000000) from .wrangler/state/v3/d1:
+🌀 To execute on your remote database, add a --remote flag to your wrangler command.
+🚣 7 commands executed successfully.
+┌──────────────────────────┬────────┐
+│ name                     │ status │
+├──────────────────────────┼────────┤
+│ 0001_core.sql            │ ✅     │
+├──────────────────────────┼────────┤
+│ 0002_event_integrity.sql │ ✅     │
+└──────────────────────────┴────────┘
+
+ ⛅️ wrangler 4.125.0
+────────────────────
+
+Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+Total Upload: 15.14 KiB / gzip: 3.90 KiB
+Your Worker has access to the following bindings:
+Binding                  Resource         
+env.DB (tyama-core)      D1 Database      
+
+--dry-run: exiting now.
