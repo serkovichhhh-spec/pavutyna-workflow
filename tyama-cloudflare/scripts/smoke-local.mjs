@@ -80,7 +80,7 @@ try {
   const created = await api('/api/events', {
     method: 'POST',
     headers: hostHeaders,
-    body: { title: 'Cloudflare E2E', eventType: 'Весілля' },
+    body: { title: 'Cloudflare E2E', type: 'Весілля', heroNames: 'Марта та Андрій', notes: 'Тестовий контекст' },
   });
   if (created.response.status !== 201) throw new Error(`Create Event failed: ${created.response.status} ${JSON.stringify(created.data)}`);
   const eventId = created.data.event.id;
@@ -92,20 +92,31 @@ try {
 
   const questionnaire = await api(`/api/public/questionnaire/${qToken}`);
   if (!questionnaire.response.ok || !questionnaire.data.questions?.length) throw new Error('Public questionnaire did not load');
+  if (!questionnaire.data.questions.some(q => q.key === 'media' && q.type === 'url')) throw new Error('Validated questionnaire context was not preserved');
 
   const answers = questionnaire.data.questions.map((question, index) => ({
     questionId: question.id,
-    value: index === 0 ? 'Олена' : index === questionnaire.data.questions.length - 1 ? 'Так' : `Контекст ${index}`,
+    value: question.key === 'name' ? 'Олена' : question.key === 'consent' ? 'Так' : question.key === 'media' ? 'https://example.com/media' : `Контекст ${index}`,
   }));
   const submitted = await api(`/api/public/questionnaire/${qToken}`, {
     method: 'POST',
-    body: { respondentLabel: 'Олена', consent: 'Так', answers },
+    body: { respondentLabel: 'Олена', answers },
   });
-  if (submitted.response.status !== 201) throw new Error(`Questionnaire submit failed: ${submitted.response.status}`);
+  if (submitted.response.status !== 201) throw new Error(`Questionnaire submit failed: ${submitted.response.status} ${JSON.stringify(submitted.data)}`);
 
   const detail = await api(`/api/events/${eventId}`, { headers: hostHeaders });
   if (!detail.response.ok || detail.data.responses.length !== 1 || detail.data.kit.length < 1) throw new Error('Response did not reach Event Kit');
+  if (detail.data.event.heroNames !== 'Марта та Андрій') throw new Error('Event context was not preserved in Host API');
+  if (!detail.data.event.metrics || typeof detail.data.event.metrics.readiness !== 'number') throw new Error('Validated Host metrics contract is missing');
   const itemId = detail.data.kit[0].id;
+
+  const editedLabel = `${detail.data.questionnaire.questions[2].label} — тест`;
+  const questionnaireUpdate = await api(`/api/events/${eventId}/questionnaire`, {
+    method: 'PUT',
+    headers: hostHeaders,
+    body: { questions: detail.data.questionnaire.questions.map((q, index) => index === 2 ? { ...q, label: editedLabel } : q) },
+  });
+  if (!questionnaireUpdate.response.ok || questionnaireUpdate.data.questionnaire.questions[2].label !== editedLabel) throw new Error('Questionnaire editing contract failed');
 
   const privacy = await api(`/api/events/${eventId}/kit/${itemId}`, {
     method: 'PATCH', headers: hostHeaders, body: { privacy: 'public_allowed', edited: true },
@@ -127,14 +138,14 @@ try {
   if (!shown.response.ok) throw new Error(`Live show failed: ${shown.response.status}`);
 
   const screen = await api(`/api/public/screen/${screenToken}`);
-  if (!screen.response.ok || !screen.data.item_title) throw new Error('Public Screen did not receive approved item');
+  if (!screen.response.ok || !screen.data.item?.title) throw new Error('Public Screen did not receive approved item');
 
   const blank = await api(`/api/events/${eventId}/live`, {
     method: 'POST', headers: hostHeaders, body: { action: 'blank' },
   });
   if (!blank.response.ok) throw new Error('Live blank failed');
   const cleared = await api(`/api/public/screen/${screenToken}`);
-  if (cleared.data.item_title) throw new Error('Public Screen did not clear');
+  if (cleared.data.item !== null || cleared.data.currentItemId !== null) throw new Error('Public Screen did not clear');
 
   console.log('TYAMA Worker local E2E: PASS');
 } catch (error) {
