@@ -7,7 +7,7 @@ export const templates={
  promos:{name:'',url:'',expiry:'',audience:'',strategicRole:'',owner:'',leads:null,validLeads:null,connections:null,promoCost:null,revenue:null,margin:null,retention:null,status:'Потрібні дані',recommendation:'Пауза',rationale:'',dataRequest:''},
  rhythm:{title:'',cadence:'Щотижня',day:'',time:'',owner:'',participants:'',output:'',status:'Заплановано',done:false,critical:false},
  experiments:{name:'',hypothesis:'',audience:'',channel:'',owner:'',status:'Backlog',impact:5,confidence:5,ease:5,budget:null,metric:'',target:null,actual:null,start:'',end:'',decision:'Очікує',learning:'',successRule:''},
- attribution:{source:'',group:'Other',spend:null,visits:null,leads:null,validLeads:null,connections:null,revenue:null,owner:'',quality:'Немає даних',note:''},
+ attribution:{month:'',source:'',group:'Other',spend:null,visits:null,leads:null,validLeads:null,connections:null,revenue:null,owner:'',quality:'Немає даних',note:''},
  visual:{name:'',template:'Вільна дошка',zoom:100,cards:[],updated:''},
  cards:{title:'',body:'',tag:'',color:'blue',kind:'note',x:0,y:0},
  launches:{name:'',objective:'',audience:'',offer:'',owner:'',budget:'',channels:'',approval:'Очікує',note:'',gates:{tracking:false,landing:false,coverage:false,creative:false,utm:false,sales:false,baseline:false}},
