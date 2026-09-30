@@ -69,8 +69,8 @@ export function mountOwnerSpace({request,notice,getTasks=()=>[]}){
   form.onsubmit=async e=>{e.preventDefault();const button=form.querySelector('button:not([type=button])');button.disabled=true;error.textContent='';try{
    const edited=readForm(form,original);if(!String(edited.title||edited.name||edited.month||edited.source||edited.pack||edited.role||'').trim())throw Error('Заповни назву запису');
    if(editKey==='visual')edited.updated=new Date().toISOString();
-   if(index===null)items.push(edited);else items[index]=edited;
-   const next=replaceRows(editKey,base,items,editPart);validatePayload(editKey,next);
+   const nextItems=index===null?[...items,edited]:items.map((r,i)=>i===index?edited:r);
+   const next=replaceRows(editKey,base,nextItems,editPart);validatePayload(editKey,next);
    await request({op:'save',key:editKey,revision,payload:next});dialog.close();await refresh();notice('Збережено');
   }catch(e){error.textContent=e.message+' Введені зміни залишилися у формі.';}finally{button.disabled=false;}};
  }
