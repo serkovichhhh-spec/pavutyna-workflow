@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {taskMetrics,escapeHtml} from '../metrics.js';
+test('legacy due text never becomes a false deadline; completed tasks are excluded',()=>{assert.deepEqual(taskMetrics([{lane:'todo',due:'липень'},{lane:'progress',due:'2026-09-29'},{lane:'done',due:'2026-09-01'},{lane:'review',due:'2026-09-30'},{lane:'blocked',due:'без дедлайну'}],'2026-09-30'),{open:4,review:1,blocked:1,overdue:1});});
+test('task text cannot inject HTML or attributes',()=>{assert.equal(escapeHtml('<img src=x onerror="alert(1)">'), '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');assert.equal(escapeHtml("a'&b"),'a&#39;&amp;b');});
