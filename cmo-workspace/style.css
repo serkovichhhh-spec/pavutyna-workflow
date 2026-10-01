@@ -138,3 +138,5 @@ dialog{padding:32px;border-radius:16px;background:var(--cmo-surface);border-colo
 
 .wb-image img{display:block;width:100%;max-height:400px;object-fit:contain;margin:8px 0;border-radius:6px}.wb-image{overflow:hidden}
 body.board-demo{display:block;min-height:100vh}.board-demo main{max-width:1800px;margin:auto;padding:24px}.board-demo header{align-items:flex-start;margin-bottom:20px}.board-demo header p{max-width:700px;color:#a8bad5}.board-demo .wb-viewport{height:75dvh}
+
+#login-form .remember-login{display:flex;align-items:center;gap:10px;line-height:1.5;cursor:pointer}#login-form .remember-login input{width:18px;height:18px;flex:0 0 18px;margin:0;accent-color:var(--accent,#568bff)}
