@@ -12,6 +12,7 @@ export function tabsFor(group,role){
  if(role==='owner')return group.tabs;
  if(group.id==='dashboard')return [['control','Мій контроль']];
  if(group.id==='tasks')return [['mine','Мої'],['board','Доступні']];
+ if(group.id==='boards')return [['visual','Спільні дошки']];
  if(group.id==='cabinet')return [['profile','Мій профіль']];
  return [];
 }

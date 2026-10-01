@@ -1,0 +1,20 @@
+import {createRequire} from 'node:module';import assert from 'node:assert/strict';
+const require=createRequire(import.meta.url);const {JSDOM}=require(process.env.CMO_TEST_NODE_MODULES+'/jsdom');
+const dom=new JSDOM('<div id="board"></div>',{url:'https://test.invalid'});
+Object.assign(globalThis,{document:dom.window.document,FormData:dom.window.FormData,CustomEvent:dom.window.CustomEvent});
+dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;};
+const {mountWhiteboard}=await import('../whiteboard.js');const root=document.querySelector('#board');
+const tasks=[{id:'task',title:'Live title <safe>',lane:'progress',assignee:'Designer',due:'2026-10-10',priority:'High',version:3,permissions:{work:true}}];
+const board={id:'b',zoom:100,cards:[{id:'live',kind:'task',taskId:'task',title:'Old stale title',x:0,y:0},{id:'hidden',kind:'task',taskId:'unavailable',title:'Copied confidential title',body:'secret',x:300,y:0},{id:'idea',kind:'note',title:'Idea',body:'Brief',x:0,y:300}],edges:[],session:{id:'session',phase:'voting',limit:3,endsAt:new Date(Date.now()+300000).toISOString(),ballots:{owner:{idea:1}}}};
+let calls=[];const tick=()=>new Promise(r=>setImmediate(r));
+function mount(actor={id:'owner',name:'CMO',role:'owner'}){mountWhiteboard(root,{board,tasks,actor,team:[{name:'Designer',active:true}],save:async()=>true,action:async b=>{calls.push(b);if(b.op==='vote')throw Error('Vote limit fixture');return {taskId:'task'};},refresh:async()=>{},notice:()=>{},openTask:()=>{}});}
+const click=s=>{const el=root.querySelector(s);assert(el,s);el.click();};const submit=()=>root.querySelector('.wb-session-dialog form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));
+mount();assert(root.querySelector('[data-note=live]').textContent.includes(tasks[0].title));assert(!root.querySelector('[data-note=live]').textContent.includes('Old stale'));
+assert(!root.querySelector('[data-note=hidden]').textContent.includes('confidential'));assert(root.querySelector('[data-note=live]').textContent.includes('У роботі'));assert(!root.querySelector('safe'));
+click('[data-session-share]');assert(root.querySelector('.wb-session-dialog').textContent.includes('Доступ до самих задач'));root.querySelector('[name=members]').checked=true;submit();await tick();assert.deepEqual(calls.at(-1),{op:'share',members:['Designer']});
+click('[data-session-start]');root.querySelector('[name=phase]').value='voting';submit();await tick();assert.equal(calls.at(-1).op,'start');assert.equal(calls.at(-1).minutes,'5');
+click('[data-vote-card=idea]');await tick();assert.equal(calls.at(-1).sessionId,'session');
+const convert=[...root.querySelector('[data-note=idea]').querySelectorAll('button')].find(b=>b.textContent==='Ідея → задача');convert.click();root.querySelector('[name=due]').value='2026-10-10';submit();await tick();assert.equal(calls.at(-1).cardId,'idea');assert.equal(calls.at(-1).op,'convert');
+click('[data-portal=review]');click('[data-select-task=task]');root.querySelector('[name=text]').value='Result';submit();await tick();assert.equal(calls.at(-1).destination,'review');assert.equal(calls.at(-1).version,3);assert.equal(calls.at(-1).result,'Result');
+mount({id:'editor',role:'executor',name:'Designer'});assert(!root.querySelector('[data-session-share]'));assert(!root.querySelector('[data-session-start]'));assert(![...root.querySelector('[data-note=idea]').querySelectorAll('button')].some(b=>b.textContent==='Ідея → задача'));
+root.replaceChildren();dom.window.close();console.log('PASS live fields, safe inaccessible cards, share, session, vote, convert, portal and role UI');

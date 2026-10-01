@@ -1,8 +1,9 @@
 import {escapeHtml as h} from './metrics.js';
 import {templates,applyTemplate,deleteElement,connect,safeLink,bounds} from './whiteboard-model.js';
 import {moveCard} from './mechanics-model.js';
+import {mountBoardSession,portalAt} from './board-session.js';
 const histories=new Map(),positions=new Map();
-export function mountWhiteboard(root,{board,save,notice,tasks=[],openTask}){
+export function mountWhiteboard(root,{board,save,notice,tasks=[],openTask,actor,team,action,refresh}){
  if(!board)return;const history=histories.get(board.id)||{past:[],future:[]};histories.set(board.id,history);let saving=false,drag=null;
  const z=Math.max(25,Math.min(200,board.zoom||100))/100;
  const remember=()=>({cards:structuredClone(board.cards||[]),edges:structuredClone(board.edges||[]),template:board.template});
@@ -28,6 +29,7 @@ export function mountWhiteboard(root,{board,save,notice,tasks=[],openTask}){
  function download(data,type,name){const u=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
  viewport.addEventListener('pointerdown',e=>{if(saving||e.target.closest('button,a,input,textarea'))return;const el=e.target.closest('[data-note]');if(el&&!e.target.closest('.note-handle'))return;const c=el?board.cards.find(c=>c.id===el.dataset.note):null;drag={c,el,startX:e.clientX,startY:e.clientY,x:c?.x||0,y:c?.y||0,left:viewport.scrollLeft,top:viewport.scrollTop};(e.target.closest('.note-handle')||viewport).setPointerCapture?.(e.pointerId);e.preventDefault();});
  viewport.addEventListener('pointermove',e=>{if(!drag)return;if(!drag.c){viewport.scrollLeft=drag.left-(e.clientX-drag.startX);viewport.scrollTop=drag.top-(e.clientY-drag.startY);return;}drag.x=Math.max(0,Math.min(4000,(drag.c.x||0)+(e.clientX-drag.startX)/z));drag.y=Math.max(0,Math.min(4000,(drag.c.y||0)+(e.clientY-drag.startY)/z));drag.el.style.left=drag.x+'px';drag.el.style.top=drag.y+'px';});
- viewport.addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;if(d.c&&((d.c.x||0)!==d.x||(d.c.y||0)!==d.y))commit(moveCard(board,d.c.id,d.x,d.y));});viewport.addEventListener('pointercancel',()=>{if(drag?.c){drag.el.style.left=(drag.c.x||0)+'px';drag.el.style.top=(drag.c.y||0)+'px';}drag=null;});
+ viewport.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;const destination=d.c?.kind==='task'&&portalAt(root,e);if(destination){d.el.style.left=(d.c.x||0)+'px';d.el.style.top=(d.c.y||0)+'px';root.dispatchEvent(new CustomEvent('wb-portal',{detail:{taskId:d.c.taskId,destination}}));return;}if(d.c&&((d.c.x||0)!==d.x||(d.c.y||0)!==d.y))commit(moveCard(board,d.c.id,d.x,d.y));});viewport.addEventListener('pointercancel',()=>{if(drag?.c){drag.el.style.left=(drag.c.x||0)+'px';drag.el.style.top=(drag.c.y||0)+'px';}drag=null;});
  viewport.querySelectorAll('[data-wb-resize]').forEach(handle=>{let r;handle.onpointerdown=e=>{if(saving)return;e.stopPropagation();const c=board.cards.find(c=>c.id===handle.dataset.wbResize);r={c,startX:e.clientX,startY:e.clientY,w:c.width||260,h:c.height||190};handle.setPointerCapture?.(e.pointerId);};handle.onpointermove=e=>{if(!r)return;e.stopPropagation();r.w=Math.max(160,Math.min(1800,(r.c.width||260)+(e.clientX-r.startX)/z));r.h=Math.max(120,Math.min(1800,(r.c.height||190)+(e.clientY-r.startY)/z));handle.closest('[data-note]').style.width=r.w+'px';handle.closest('[data-note]').style.minHeight=r.h+'px';};handle.onpointerup=e=>{if(!r)return;e.stopPropagation();const v=r;r=null;commit({...board,cards:board.cards.map(c=>c.id===v.c.id?{...c,width:Math.round(v.w),height:Math.round(v.h)}:c)});};handle.onpointercancel=()=>{r=null;};});
+ mountBoardSession(root,{board,tasks,actor,team,action,refresh,openTask});
 }
