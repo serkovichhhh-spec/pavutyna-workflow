@@ -12,7 +12,7 @@ test('every existing module has exactly one accessible owner destination',()=>{
 test('executor and intake navigation excludes private owner tools',()=>{
  for(const role of ['executor','intake']){
   const keys=navigationGroups.flatMap(g=>tabsFor(g,role).map(([k])=>k));
-  assert.deepEqual(keys,['control','mine','board','visual','profile']);
+  assert.deepEqual(keys,['inbox','control','mine','board','visual','profile']);
   assert.equal(groupFor('control').id,'dashboard');
  }
 });
