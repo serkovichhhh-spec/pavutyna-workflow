@@ -1,11 +1,11 @@
 import {escapeHtml as h} from './metrics.js';
 export const navigationGroups=[
- {id:'dashboard',label:'Дашборд',tabs:[['inbox','Inbox'],['overview','Огляд'],['review','Погодження'],['deadlines','Дедлайни'],['decisions','Рішення']]},
+ {id:'dashboard',label:'Дашборд',tabs:[['inbox','Inbox'],['overview','Огляд'],['progress','Hill Charts'],['review','Погодження'],['deadlines','Дедлайни'],['decisions','Рішення']]},
  {id:'tasks',label:'Задачі',tabs:[['board','Командні'],['mine','Мої'],['legacy_tasks','Архів Workflow']]},
  {id:'plans',label:'Плани й кампанії',tabs:[['strategy','Стратегія'],['roadmap','90 днів'],['campaigns','Кампанії'],['launches','Запуски'],['content','Контент'],['execution','Виконання'],['promos','Акції'],['experiments','Експерименти'],['insights','Інсайти']]},
  {id:'analytics',label:'Аналітика',tabs:[['analytics','Показники'],['funnel','Воронка'],['budget','Бюджет'],['monthly','Завантаження даних'],['attribution','Канали'],['reports','Звіти'],['report_requests','Запити звітів']]},
  {id:'boards',label:'Дошки',tabs:[['visual','Візуальні дошки']]},
- {id:'team',label:'Команда',tabs:[['team','Учасники'],['team_ops','Навантаження'],['rhythm','Ритм команди']]},
+ {id:'team',label:'Команда',tabs:[['team','Учасники'],['team_ops','Навантаження'],['weekly','Оновлення тижня'],['rhythm','Ритм команди']]},
  {id:'cabinet',label:'Кабінет',tabs:[['profile','Мій профіль'],['access','Ролі та доступи'],['sources','Джерела даних'],['transfer','Резервні копії'],['automations','Автоматизації']]}
 ];
 export function tabsFor(group,role){
