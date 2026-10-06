@@ -85,7 +85,7 @@ BEGIN
   p:=p||jsonb_build_object('links',COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements(COALESCE(p->'links','[]')) x WHERE x->>'id' IS DISTINCT FROM body->>'linkId'),'[]'));
   event:=jsonb_build_object('action','Прибрано зв’язок задач','note','');
  ELSIF op='attachment_prepare' THEN
-  IF length(COALESCE(body->>'name','')) NOT BETWEEN 1 AND 255 OR body->>'size' IS NULL OR body->>'mime' IS NULL OR (body->>'size')::bigint NOT BETWEEN 1 AND 20971520 OR body->>'mime' NOT IN ('image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','text/csv','application/json','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','video/mp4','audio/mpeg','audio/wav') THEN RAISE EXCEPTION 'Файл має бути підтримуваного формату, до 20 МБ'; END IF;
+  IF length(COALESCE(body->>'name','')) NOT BETWEEN 1 AND 255 OR body->>'size' IS NULL OR body->>'mime' IS NULL OR (body->>'size')::bigint NOT BETWEEN 1 AND 20971520 OR body->>'mime' NOT IN ('image/svg+xml','image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','text/csv','application/json','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','video/mp4','audio/mpeg','audio/wav') THEN RAISE EXCEPTION 'Файл має бути підтримуваного формату, до 20 МБ'; END IF;
   IF (SELECT count(*) FROM jsonb_array_elements(COALESCE(p->'attachments','[]')) x WHERE x->>'status'<>'removed')>=30 THEN RAISE EXCEPTION 'Максимум 30 файлів у задачі'; END IF;
   new_id:=gen_random_uuid()::text;
   attachment:=jsonb_build_object('id',new_id,'path',t.source_id||'/'||new_id,'name',body->>'name','size',(body->>'size')::bigint,'mime',body->>'mime','status','pending','uploadedBy',actor->>'id','createdAt',now_text);
@@ -101,13 +101,17 @@ BEGIN
   p:=jsonb_set(p,'{attachments}',(SELECT jsonb_agg(CASE WHEN x->>'id'=attachment->>'id' THEN x||jsonb_build_object('status',CASE WHEN op='attachment_remove' THEN 'removed' ELSE 'ready' END) ELSE x END) FROM jsonb_array_elements(p->'attachments') x));
   event:=jsonb_build_object('action',CASE WHEN op='attachment_confirm' THEN 'Додано файл' WHEN op='attachment_restore' THEN 'Відновлено вкладення' ELSE 'Прибрано вкладення' END,'note',attachment->>'name');
 
+ ELSIF op='result' THEN
+   IF body->>'result' IS NULL OR length(body->>'result')>10000 THEN RAISE EXCEPTION 'Результат має бути до 10000 символів'; END IF;
+   p:=jsonb_set(p,'{result}',to_jsonb(trim(body->>'result')));
+   event:=jsonb_build_object('action','Збережено результат / причину','note','');
  ELSIF op='move' THEN
    next_lane:=body->>'lane';
    IF next_lane IS NULL OR next_lane NOT IN ('backlog','todo','progress','blocked','review','ready','done') THEN RAISE EXCEPTION 'Невідомий статус'; END IF;
    IF actor->>'role'<>'owner' AND next_lane NOT IN ('todo','progress','blocked','review') THEN RAISE EXCEPTION 'Приймання результату доступне керівнику' USING ERRCODE='42501'; END IF;
    result_text:=trim(COALESCE(body->>'result',''));
    IF next_lane IN ('review','blocked') AND result_text='' THEN RAISE EXCEPTION 'Додай результат або причину блокування'; END IF;
-   IF next_lane='done' AND t.lane<>'review' THEN RAISE EXCEPTION 'Спочатку передай результат на перевірку'; END IF;
+   IF next_lane='done' AND t.lane NOT IN ('review','ready') THEN RAISE EXCEPTION 'Спочатку передай результат на перевірку'; END IF;
    IF next_lane IN ('review','done') AND EXISTS(SELECT 1 FROM cmo.tasks ch WHERE ch.source_id IN (SELECT jsonb_array_elements_text(COALESCE(p->'childIds','[]'))) AND ch.lane<>'done') THEN RAISE EXCEPTION 'Спочатку заверши й прийми підзадачі'; END IF;
    p:=jsonb_set(p,'{lane}',to_jsonb(next_lane));
    IF result_text<>'' THEN p:=jsonb_set(p,'{result}',to_jsonb(result_text)); END IF;
@@ -129,7 +133,7 @@ BEGIN
  UPDATE cmo.tasks SET runtime_payload=p,title=p->>'title',description=p->>'description',assignee_name=p->>'assignee',priority=p->>'priority',lane=p->>'lane',due_text=p->>'due',source_updated_at=now(),version=version+1 WHERE workspace_key=t.workspace_key AND source=t.source AND source_id=t.source_id;
  RETURN jsonb_build_object('id',t.source_id,'version',t.version+1,'attachment',CASE WHEN op='attachment_prepare' THEN attachment ELSE NULL END,'childId',CASE WHEN op='subtask_create' THEN new_id ELSE NULL END);
 END $function$;
-INSERT INTO storage.buckets(id,name,public,file_size_limit,allowed_mime_types) VALUES('cmo-task-files','cmo-task-files',false,20971520,ARRAY['image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','text/csv','application/json','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','video/mp4','audio/mpeg','audio/wav']) ON CONFLICT(id) DO NOTHING;
+INSERT INTO storage.buckets(id,name,public,file_size_limit,allowed_mime_types) VALUES('cmo-task-files','cmo-task-files',false,20971520,ARRAY['image/svg+xml','image/jpeg','image/png','image/webp','image/gif','application/pdf','text/plain','text/csv','application/json','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/zip','video/mp4','audio/mpeg','audio/wav']) ON CONFLICT(id) DO NOTHING;
 CREATE OR REPLACE FUNCTION cmo.file_access(object_name text,operation text) RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
 DECLARE a jsonb:=cmo.actor();t cmo.tasks;f jsonb; rights jsonb;
 BEGIN

@@ -5,3 +5,7 @@ export function deleteElement(board,id){return {...board,cards:board.cards.filte
 export function connect(board,from,to,id=()=>crypto.randomUUID()){if(from===to||![from,to].every(id=>board.cards.some(c=>c.id===id)))throw Error('Обери дві різні картки');if((board.edges||[]).some(e=>e.from===from&&e.to===to))return board;return {...board,edges:[...(board.edges||[]),{id:id(),from,to}]};}
 export function safeLink(url){try{const u=new URL(url);return ['https:','http:'].includes(u.protocol)?u.href:null;}catch{return null;}}
 export function bounds(cards){return cards.length?{width:Math.max(...cards.map(c=>(Number(c.x)||0)+(Number(c.width)||260)))+80,height:Math.max(...cards.map(c=>(Number(c.y)||0)+(Number(c.height)||190)))+80}:{width:1000,height:600};}
+// Selection belongs to the current actor's UI, not the shared server document.
+export function selectedBoard(boards,localId,savedId){
+ return boards.find(b=>b.id===localId)||boards.find(b=>b.id===savedId)||boards[0];
+}
