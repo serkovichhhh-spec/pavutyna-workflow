@@ -1,4 +1,5 @@
 import {mountWhiteboard} from './whiteboard.js';
+import {selectedBoard} from './whiteboard-model.js';
 import {mountProjectProgress} from './project-progress.js';
 import {dependencyState,validateDependencies,launchReadiness,gateNames,iceScore,rankExperiments,deadlineQueue,moveCard} from './mechanics-model.js';
 import {validMonth,previousMonth,reportReadiness,linkedTasks,parseChannelCsv,channelCsvTemplate} from './monthly-model.js';
@@ -33,7 +34,7 @@ const numberFields=new Set(['planned','actual','targetLeads','actualLeads','targ
 const statusChoices={reports:['Чернетка','Частково','Перевірено'],insights:['Новий','Перевіряємо','Підтверджено','Відхилено'],roadmap:['Заплановано','У роботі','Заблоковано','Готово'],budget:['Чернетка','Погоджено','Активно','Стоп'],promos:['Потрібні дані','На оцінці','Погоджено','Завершити'],rhythm:['Заплановано','Сьогодні','Очікує','Готово'],experiments:['Backlog','Готовий','Запущено','Завершено'],execution:['До роботи','У роботі','Заблоковано','Готово'],automations:['Очікує налаштування','Очікує доступ','Заблоковано','Готово','Активно'],launches:['Підготовка','Готово до запуску','Запущено','Завершено'],report_requests:['Очікуємо','Отримано','Перевірено']};
 export function mountOwnerSpace({request,boardRequest,projectRequest,reloadTasks=async()=>{},backupStatus=async()=>null,notice,getTasks=()=>[],getTeam=()=>[],openTask=()=>{},openAssignee=()=>{},onNavigate=()=>{}}){
  const root=document.querySelector('#owner-space'),nav=document.querySelector('#owner-nav');
- let actor,key,documents=[],actorEpoch=0,fetching=false,fetchPromise,part='lines',filter='',reportId,month=previousMonth(),progressTools;
+ let actor,key,documents=[],actorEpoch=0,fetching=false,fetchPromise,part='lines',filter='',reportId,month=previousMonth(),progressTools,activeBoardId;
  const views={monthly:'Збір звітів',team:'Команда',overview:'Огляд CMO',review:'Рев’ю керівника',strategy:'Стратегія',analytics:'Аналітика',funnel:'Воронка',deadlines:'Контроль дедлайнів',sources:'Джерела даних'};
  nav.innerHTML='';
  const dialog=document.createElement('dialog');dialog.innerHTML='<div class="dialog-head"><h2></h2><button type="button" data-close aria-label="Закрити">×</button></div><div class="space-dialog-body"></div><p class="space-error" role="status"></p>';document.body.append(dialog);
@@ -131,10 +132,11 @@ export function mountOwnerSpace({request,boardRequest,projectRequest,reloadTasks
  }
  let boardSaving=false;
  function renderBoards(){
-  const boards=rows(),selected=boards.find(b=>b.id===payload().active)||boards[0];
+  const boards=rows(),selected=selectedBoard(boards,activeBoardId,payload().active);
+  activeBoardId=selected?.id;
   root.onclick=null;
   root.innerHTML=`<div class="space-toolbar"><button data-refresh>Оновити</button>${actor.role==='owner'?'<button data-add>+ Дошка</button>':''}${selected&&actor.role==='owner'?`<button data-edit="${boards.indexOf(selected)}">Назва / властивості</button>`:''}</div><div class="space-toolbar wb-tabs">${boards.map(b=>`<button data-board="${h(b.id)}" ${selected?.id===b.id?'aria-current="true"':''}>${h(b.name)}</button>`).join('')}</div><div class="whiteboard-root"></div>`;
-  root.querySelectorAll('[data-board]').forEach(b=>b.onclick=()=>{doc('visual').payload.active=b.dataset.board;renderBoards();});
+  root.querySelectorAll('[data-board]').forEach(b=>b.onclick=()=>{activeBoardId=b.dataset.board;renderBoards();});
   if(selected)mountWhiteboard(root.querySelector('.whiteboard-root'),{board:selected,save:saveBoard,notice,tasks:getTasks(),openTask,actor,team:getTeam(),refresh:async()=>{await reloadTasks();await refresh();},action:boardRequest?async values=>{try{const result=await boardRequest({...values,boardId:selected.id,revision:doc('visual').revision});await reloadTasks();await refresh();if(result.taskId)notice('Ідею пов’язано з задачею. Повторне натискання не створює дубль.');return result;}catch(e){notice(e.message);throw e;}}:undefined});
   else root.querySelector('.whiteboard-root').textContent=actor.role==='owner'?'Додай першу дошку, потім обери шаблон.':'Керівник ще не відкрив тобі доступ до жодної дошки.';
  }
@@ -158,5 +160,5 @@ export function mountOwnerSpace({request,boardRequest,projectRequest,reloadTasks
  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-csv-template'))downloadCsv();if(b.hasAttribute('data-month-new'))go(b.dataset.monthNew,null,{month});if(b.hasAttribute('data-record-module'))go(b.dataset.recordModule,b.dataset.recordId);if(b.hasAttribute('data-open-task'))openTask(b.dataset.openTask);if(b.hasAttribute('data-assignee'))openAssignee(b.dataset.assignee);if(b.hasAttribute('data-refresh'))refresh();if(b.hasAttribute('data-edit'))edit(Number(b.dataset.edit));if(b.hasAttribute('data-add'))edit(null);if(b.hasAttribute('data-export'))exportAll();if(b.hasAttribute('data-history'))history();if(b.hasAttribute('data-envelope'))envelope();if(b.hasAttribute('data-part')){part=b.dataset.part;render();}});
  root.addEventListener('input',e=>{if(e.target.hasAttribute('data-search')){filter=e.target.value;const position=e.target.selectionStart;render();const input=root.querySelector('[data-search]');input.focus();input.setSelectionRange(position,position);}});
  root.addEventListener('change',e=>{if(e.target.hasAttribute('data-month')){if(validMonth(e.target.value)){month=e.target.value;render();}return;}if(e.target.hasAttribute('data-channel-csv')&&e.target.files[0])previewChannels(e.target.files[0]);if(e.target.hasAttribute('data-import')&&e.target.files[0])previewImport(e.target.files[0]);if(e.target.hasAttribute('data-report-select')){reportId=e.target.value;render();}});
- return {go,setActor(a){if(actor?.id!==a?.id||actor?.role!==a?.role)actorEpoch++;actor=a;nav.hidden=a?.role!=='owner';if(a?.role!=='owner'){progressTools?.cleanup();progressTools=null;documents=[];root.hidden=true;root.replaceChildren();body.replaceChildren();if(dialog.open)dialog.close();}},hide(){progressTools?.cleanup();progressTools=null;root.hidden=true;}};
+ return {go,setActor(a){if(actor?.id!==a?.id||actor?.role!==a?.role){actorEpoch++;activeBoardId=undefined;}actor=a;nav.hidden=a?.role!=='owner';if(a?.role!=='owner'){progressTools?.cleanup();progressTools=null;documents=[];root.hidden=true;root.replaceChildren();body.replaceChildren();if(dialog.open)dialog.close();}},hide(){progressTools?.cleanup();progressTools=null;root.hidden=true;}};
 }

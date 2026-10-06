@@ -3,3 +3,16 @@ test('templates append isolated frames and notes without replacing existing cont
 test('connectors validate endpoints, avoid duplicates and disappear with removed cards',()=>{const b={cards:[{id:'a'},{id:'b'}]};const next=connect(b,'a','b',()=> 'edge');assert.equal(next.edges.length,1);assert.equal(connect(next,'a','b').edges.length,1);assert.throws(()=>connect(b,'a','missing'));assert.equal(deleteElement(next,'a').edges.length,0);assert.equal(b.cards.length,2);});
 test('resource links and file validation reject active schemes and oversized/unsupported uploads',()=>{assert.equal(safeLink('javascript:alert(1)'),null);assert.equal(safeLink('https://example.com/a'),'https://example.com/a');assert.equal(validateFile({name:'report.xlsx',size:20}),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');assert.throws(()=>validateFile({name:'payload.html',size:1}));assert.throws(()=>validateFile({name:'report.pdf',size:20971521}));assert.deepEqual(bounds([]),{width:1000,height:600});});
 test('task sections escape file names, retain inaccessible subtasks and hide editing on review',()=>{const t={permissions:{work:false},checklist:[],childIds:['hidden'],attachments:[{id:'f',name:'<img onerror=alert(1)>',size:1,status:'ready'}]};const markup=taskToolsMarkup(t,[],[],{role:'executor'});assert(markup.includes('Підзадача недоступна'));assert(markup.includes('&lt;img'));assert(!markup.includes('data-task-file'));assert(!markup.includes('data-tool="subtask_create"'));});
+import {selectedBoard} from '../whiteboard-model.js';
+test('a second-board selection survives a server refresh without changing the shared active board',()=>{
+ const before={active:'first',boards:[{id:'first'},{id:'second',cards:[]}]};
+ const chosen=selectedBoard(before.boards,'second',before.active);
+ const refreshed=structuredClone(before);
+ refreshed.boards[1].cards.push({id:'qa-note',x:120});
+ assert.equal(selectedBoard(refreshed.boards,chosen.id,refreshed.active).cards[0].x,120);
+ assert.equal(refreshed.active,'first');
+ // Revoked or removed boards cannot remain selected; actor reset uses the server default.
+ assert.equal(selectedBoard([refreshed.boards[0]],chosen.id,refreshed.active).id,'first');
+ assert.equal(selectedBoard(refreshed.boards,undefined,refreshed.active).id,'first');
+ assert.equal(selectedBoard([],chosen.id,refreshed.active),undefined);
+});
