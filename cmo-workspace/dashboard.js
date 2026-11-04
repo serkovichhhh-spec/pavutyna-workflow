@@ -41,7 +41,7 @@ export function dashboardModel({documents=[],tasks=[],month,today=kyivToday()}){
  const drafts=rows('content').filter(r=>r.agent&&!(r.taskIds||[]).length&&['Ідея','План'].includes(r.status));
  const review=tasks.filter(t=>t.lane==='review');
  const insights=rows('insights').filter(r=>r.agentUpdatedAt&&r.status==='Новий').sort((a,b)=>String(b.agentUpdatedAt).localeCompare(String(a.agentUpdatedAt))).slice(0,6);
- return {series,recent,selected,cur,threads,envelope,purchases,overdue,soon,people,decisions,drafts,review,insights,today};
+ return {budget,tasks,series,recent,selected,cur,threads,envelope,purchases,overdue,soon,people,decisions,drafts,review,insights,today};
 }
 
 function threadMarkup(t){
@@ -63,14 +63,17 @@ function spendChart(series){
  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Витрати по каналах і заявки за 12 місяців">${grid}${bars}${line}${dots}</svg>`;
 }
 
+const lineChannel={'Google Ads':'google','Meta Ads':'meta','Чати ЖК':'chats'};
 function budgetMarkup(m){
- const paid=m.purchases.paid,committed=m.purchases.approved,spent=m.cur.spend;
- const base=m.envelope||Math.max(committed,spent||0,1),pct=v=>Math.min(100,Math.round((v||0)/base*100));
- return `<article class="dash-card dash-budget"><h2>Бюджет · ${h(monthLabel(m.selected,true))}</h2>
- ${m.envelope?`<p class="dash-big">${fmt(m.envelope-committed)} <small>грн вільно з ${fmt(m.envelope)}</small></p>`:`<p class="dash-big">${fmt(spent)} <small>грн витрачено за даними кабінетів</small></p><p class="dash-note">Ліміт місяця не задано. <button data-record-module="budget">Задати ліміт</button></p>`}
- <div class="meter" aria-hidden="true"><span class="meter-paid" style="width:${pct(paid)}%"></span><span class="meter-approved" style="width:${Math.max(0,pct(committed)-pct(paid))}%"></span></div>
- <dl class="dash-legend"><div><dt><i class="sw sw-paid"></i>Оплачено закупівель</dt><dd>${money(paid)}</dd></div><div><dt><i class="sw sw-approved"></i>Погоджено, не оплачено</dt><dd>${money(committed-paid)}</dd></div><div><dt><i class="sw sw-request"></i>Чекає погодження</dt><dd>${money(m.purchases.requested)}</dd></div></dl>
- ${m.purchases.byChannel.some(c=>c.committed)?`<ul class="dash-channels">${m.purchases.byChannel.filter(c=>c.committed).map(c=>`<li><span>${h(c.channel)}</span><strong>${money(c.committed)}</strong></li>`).join('')}</ul>`:'<p class="dash-note">Погоджених закупівель за цей місяць немає. Запит створює будь-хто з команди кнопкою «+ Закупівля».</p>'}</article>`;
+ const b=m.budget,month=b.month||m.selected,ser=m.series.find(s=>s.month===month),purch=purchaseSummary(m.tasks,month);
+ const lines=(b.lines||[]).map(l=>{const c=lineChannel[l.channel],agent=c?ser?.by[c]?.spend:null,bought=purch.byChannel.find(x=>x.channel===l.channel)?.paid||0,fact=num(l.actual)??Math.max(agent||0,bought);return {...l,fact,planned:num(l.planned)};});
+ const planned=num(b.envelope)??lines.reduce((s,l)=>s+(l.planned||0),0),fact=lines.reduce((s,l)=>s+(l.fact||0),0)+purch.byChannel.filter(c=>!lines.some(l=>l.channel===c.channel)).reduce((s,c)=>s+c.paid,0);
+ const pct=(v,base)=>base?Math.min(100,Math.round((v||0)/base*100)):0;
+ return `<article class="dash-card dash-budget"><h2>Бюджет · ${h(monthLabel(month,true))}</h2>
+ ${planned?`<p class="dash-big">${fmt(fact)} <small>грн витрачено з ${fmt(planned)}</small></p><div class="meter" aria-hidden="true"><span class="meter-paid" style="width:${pct(fact,planned)}%"></span></div>`:`<p class="dash-note">Ліміт місяця не задано. <button data-record-module="budget">Задати ліміт</button></p>`}
+ ${lines.length?`<ul class="budget-lines">${lines.map(l=>`<li class="${l.planned===0?'paused':''}"><div><strong>${h(l.channel||l.name)}</strong><span>${h(l.status||'')}</span></div><div class="budget-nums">${l.planned===0?'пауза':`${fmt(l.fact)} / ${fmt(l.planned)}`}</div>${l.planned?`<i class="budget-bar"><b style="width:${pct(l.fact,l.planned)}%"></b></i>`:''}</li>`).join('')}</ul>`:''}
+ <dl class="dash-legend budget-purchases"><div><dt><i class="sw sw-request"></i>Закупівлі чекають погодження</dt><dd>${money(purch.requested)}</dd></div><div><dt><i class="sw sw-approved"></i>Погоджено, не оплачено</dt><dd>${money(purch.approved-purch.paid)}</dd></div></dl>
+ <p class="dash-note">Факт Google і Meta — з кабінетів (агент «Аналітик»), решта — з оплачених закупівель.</p></article>`;
 }
 
 function needsMarkup(m){
