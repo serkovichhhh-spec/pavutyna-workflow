@@ -1,0 +1,16 @@
+import {createRequire} from 'node:module';import assert from 'node:assert/strict';import fs from 'node:fs';
+const require=createRequire(import.meta.url),{JSDOM}=require(process.env.CMO_TEST_NODE_MODULES+'/jsdom');
+const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'),{url:'https://fixture.invalid'});Object.assign(globalThis,{document:dom.window.document,FormData:dom.window.FormData});
+dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(){this.open=false;};
+const {mountOwnerSpace}=await import('../owner-space.js');
+let docs=[{key:'content',revision:6,payload:[{id:'c1',title:'Пост <b>',owner:'Надія',status:'Ідея',due:'2026-11-10',taskIds:[]}]}],tasks=[],sent=[],opened;
+const space=mountOwnerSpace({request:async()=>({documents:docs}),contentRequest:async b=>{sent.push(b);tasks.push({id:'t1',lane:'todo',assignee:b.assignee,title:'x'});docs[0].payload[0].taskIds=['t1'];docs[0].revision++;return {taskId:'t1'};},getTasks:()=>tasks,getTeam:()=>[{name:'Дмитро',role:'owner',active:true},{name:'Діана',role:'intake',active:true},{name:'Надія',role:'executor',active:true},{name:'QA · Виконавець',role:'executor',active:true}],openTask:id=>{opened=id;},notice:()=>{}});
+space.setActor({id:'o',role:'owner',name:'Дмитро'});await space.go('content');
+const root=document.querySelector('#owner-space'),tick=()=>new Promise(r=>setImmediate(r));
+assert(!root.querySelector('b'));root.querySelector('[data-content-task]').click();
+const form=[...document.querySelectorAll('dialog form')].find(f=>f.elements.note);const names=[...form.elements.assignee.options].map(o=>o.value);
+assert.deepEqual(names,['Діана','Надія']);assert.equal(form.elements.assignee.value,'Надія');assert.equal(form.elements.due.value,'2026-11-10');
+form.elements.note.value='Без емодзі';form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));for(let i=0;i<5;i++)await tick();
+assert.equal(sent[0].contentId,'c1');assert.equal(sent[0].revision,6);assert.equal(sent[0].note,'Без емодзі');assert.equal(opened,'t1');
+assert(!root.querySelector('[data-content-task]'));assert(root.querySelector('[data-open-task="t1"]').textContent.includes('Надія'));
+console.log('PASS content → task: team filter, prefill, revision, open task, no duplicate button');
