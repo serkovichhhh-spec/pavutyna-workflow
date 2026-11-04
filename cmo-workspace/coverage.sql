@@ -1,0 +1,2 @@
+-- Закрита база покриття: cmo.coverage_addresses (RLS, без прямого доступу) + cmo.coverage_action (search / stats).
+-- Застосовано міграціями cmo_coverage_table і cmo_coverage_action 04.11.2026. Дані — з CSV Дмитра (2026-10-28), у репозиторій не потрапляють.

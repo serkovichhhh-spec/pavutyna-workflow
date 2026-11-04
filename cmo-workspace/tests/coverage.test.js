@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {coverageRowsMarkup,techLabel,coverageStatsMarkup} from '../coverage.js';
+test('групує за вулицею й екранує',()=>{const html=coverageRowsMarkup([{locality:'Київ',street_type:'вул.',street:'Салютна <b>',building:'2 (ЖК Файна Таун)',segment:'apartment',status:'active',flags:['GPON']},{locality:'Київ',street_type:'вул.',street:'Салютна <b>',building:'*',segment:'private',status:'pending',flags:['GPON','П/с','НСВ']}],2);assert(!html.includes('<b>Салютна'));assert.equal((html.match(/cov-street/g)||[]).length,1);assert(html.includes('усі будинки'));assert(html.includes('скоро'));});
+test('порожньо — підказка',()=>assert(coverageRowsMarkup([],0).includes('не знайдено')));
+test('технологія',()=>{assert.equal(techLabel(['GPON','XGS-PON']),'XGS-PON');assert.equal(techLabel(['ВП']),'Ethernet');});
+test('статистика сортує нас. пункти',()=>{const h=coverageStatsMarkup({total:3,segments:{},localities:[{name:'Гора',n:1,apartment:1,private:0},{name:'Київ',n:2,apartment:2,private:0}],topStreets:[]});assert(h.indexOf('Київ')<h.indexOf('Гора'));});

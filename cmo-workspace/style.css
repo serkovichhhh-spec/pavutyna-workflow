@@ -231,3 +231,12 @@ aside nav{display:flex;flex-direction:column;gap:6px}aside nav #owner-nav{displa
 .budget-lines{list-style:none;margin:14px 0 4px;padding:0;display:grid;gap:12px}.budget-lines li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}.budget-lines strong{font-size:13.5px;font-weight:600;display:block}.budget-lines span{font-size:12px;color:var(--cmo-muted)}.budget-nums{font-size:13px;font-weight:600}.budget-lines .paused .budget-nums{color:var(--amber)}
 .budget-bar{grid-column:1/-1;display:block;height:6px;border-radius:999px;background:#ffffff10;overflow:hidden}.budget-bar b{display:block;height:100%;background:var(--thread-2);border-radius:999px}
 .budget-purchases{margin-top:14px;padding-top:12px;border-top:1px solid var(--cmo-border)}
+/* Покриття */
+.cov{display:grid;gap:14px;max-width:1100px}.cov-search{display:flex;gap:10px;align-items:end}.cov-search label{flex:1}.cov-search input{font-size:16px;padding:12px 14px}
+.cov-count{color:var(--cmo-muted);font-size:13px;margin:0}.cov-empty{background:#f0b44c14;border:1px solid #f0b44c44;border-radius:12px;padding:14px 16px}
+.cov-street{background:var(--cmo-surface);border:1px solid var(--cmo-border);border-radius:14px;padding:14px 16px;margin-bottom:10px}.cov-street h3{margin:0 0 10px;font-size:15px}
+.cov-houses{display:flex;flex-wrap:wrap;gap:6px}.cov-house{display:grid;gap:1px;padding:6px 10px;border-radius:8px;background:#7ee3b514;border:1px solid #7ee3b544;min-width:64px}.cov-house b{font-size:14px}.cov-house small{font-size:11px;color:var(--cmo-muted)}
+.cov-house.private{background:#6094ff14;border-color:#6094ff44}.cov-house.pending{background:#f0b44c12;border-color:#f0b44c55;border-style:dashed}
+.cov-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:8px}.cov-loc,.cov-top{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:13px}.cov-loc li{display:flex;justify-content:space-between;gap:10px}.cov-loc li span:last-child{color:var(--cmo-muted)}
+.cov-top li{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 34px;gap:8px;align-items:center}.cov-top span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cov-top i{display:block;height:8px;width:var(--w);border-radius:4px;background:var(--thread)}.cov-top b{text-align:right}
+@media (max-width:1100px){.cov-stats{grid-template-columns:1fr}}@media (max-width:640px){.cov-search{flex-direction:column;align-items:stretch}}
