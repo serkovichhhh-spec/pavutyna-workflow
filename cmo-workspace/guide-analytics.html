@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Інструкція · Аналітика CMO Space</title>
+<link rel="stylesheet" href="/guide.css">
+</head>
+<body class="guide">
+<header class="guide-top">
+  <a class="guide-brand" href="/">ПАВУТИНА<span>CMO WORKSPACE</span></a>
+  <a class="guide-back" href="/">← До Workspace</a>
+</header>
+
+<main class="guide-main">
+  <p class="guide-kicker">Інструкція · з 09.11.2026</p>
+  <h1>Аналітика без Supermetrics</h1>
+  <p class="guide-lead">CMO Space сам збирає дані з Google Ads і GA4 у власну базу. Агенти, дашборд і звіти беруть цифри звідти, а зміни в рекламі йдуть через чергу з запобіжниками. Платна підписка більше не потрібна.</p>
+
+  <nav class="guide-toc" aria-label="Зміст">
+    <a href="#flow">Як ходять дані</a>
+    <a href="#where">Де дивитись цифри</a>
+    <a href="#changes">Як змінити рекламу</a>
+    <a href="#setup">Встановлення скриптів</a>
+    <a href="#trouble">Якщо щось зламалось</a>
+  </nav>
+
+  <section id="flow">
+    <h2>Як ходять дані</h2>
+    <div class="guide-flow">
+      <div class="guide-node"><strong>Google Ads</strong><span>скрипт у кабінеті, щогодини</span></div>
+      <div class="guide-node"><strong>GA4</strong><span>Apps Script, 06:20 і 13:20</span></div>
+      <div class="guide-node"><strong>Meta Ads</strong><span>агент «Аналітик», будні 8:47</span></div>
+    </div>
+    <div class="guide-arrow" aria-hidden="true">↓</div>
+    <div class="guide-node guide-node-wide"><strong>База CMO Space</strong><span>Supabase, схема <code>mkt</code>: кампанії по днях, статуси й бюджети, пошукові запити, цілі конверсій, сесії й заявки GA4</span></div>
+    <div class="guide-arrow" aria-hidden="true">↓</div>
+    <div class="guide-flow">
+      <div class="guide-node"><strong>Огляд і «Канали»</strong><span>атрибуція оновлюється сама після кожного вивантаження</span></div>
+      <div class="guide-node"><strong>Агенти</strong><span>Аналітик, Оптимізатор, Шеф читають цифри з бази</span></div>
+      <div class="guide-node"><strong>Черга змін</strong><span>погоджені зміни виконує той самий скрипт Google Ads</span></div>
+    </div>
+    <ul class="guide-list">
+      <li><b>Google Ads.</b> Щогодини оновлюються статуси й бюджети кампаній і статистика за 3 дні. Раз на добу — за 35 днів, разом із пошуковими запитами за 14 днів і цілями конверсій. Історія є з січня 2025.</li>
+      <li><b>GA4</b> (ресурс 348106289). Сесії за каналами й source/medium, заявки <code>Order_All</code>, <code>Order_inet</code>, <code>Order_TV_inet</code>, а також кліки й ліди за каналами. Історія з січня 2025.</li>
+      <li><b>Meta</b> (кабінет 1424915349089632). Цифри пише Аналітик через безкоштовний конектор Meta.</li>
+      <li>Ліди — це конверсії Google Ads / Meta. Із ВП вони <b>не звірені</b>, якість у «Каналах» поки «Немає даних».</li>
+    </ul>
+  </section>
+
+  <section id="where">
+    <h2>Де дивитись цифри</h2>
+    <div class="guide-cards">
+      <article><h3>Дашборд → Огляд</h3><p>Нитка місяця по каналах, графік за 12 місяців, бюджет. Для Google Ads і Meta оновлюється автоматично.</p></article>
+      <article><h3>Аналітика → Канали</h3><p>Записи <code>agent-gads-РРРР-ММ</code> і <code>agent-meta-РРРР-ММ</code>: витрати, кліки, ліди. Примітку й якість можна правити вручну — синхронізація їх не перезаписує.</p></article>
+      <article><h3>Ранкове повідомлення Аналітика</h3><p>Будні 8:47: вчора і місяць, статуси кампаній, сесії, чи працюють відстеження заявок і синхронізація.</p></article>
+      <article><h3>Тижневий звіт Шефа</h3><p>П'ятниця 16:44, Google Drive «Pavutyna · Звіти агентів»: реклама, сайт, Links, що змінено в кабінетах.</p></article>
+    </div>
+    <p class="guide-note">Хочеш конкретну цифру чи зріз — напиши в чаті проєкту PAVUTYNA CMO, наприклад: «скільки заявок дав PMax-5 за жовтень» або «топ пошукових запитів без конверсій за 2 тижні». Claude відповість із бази.</p>
+  </section>
+
+  <section id="changes">
+    <h2>Як змінити рекламу</h2>
+    <ol class="guide-steps">
+      <li><b>Оптимізатор</b> щопонеділка пропонує до 3 рішень у «Дашборд → Рішення». У кожному є готові команди: було → стане.</li>
+      <li><b>Ти погоджуєш</b> рішення: пишеш у новому чаті проєкту PAVUTYNA CMO <code>Виконай рішення &lt;id&gt;</code>. Можна й своїми словами: «зменш бюджет PMax-7 до 120».</li>
+      <li><b>Claude ставить зміну в чергу.</b> База перевіряє запобіжники: якщо зміна їх порушує, вона відхиляється з поясненням.</li>
+      <li><b>Скрипт Google Ads виконує її</b> протягом години. Щоб застосувати одразу, натисни «Запустити» в кабінеті. Для кожної зміни зберігається «було → стало».</li>
+    </ol>
+
+    <h3>Що робиться через чергу</h3>
+    <div class="guide-table">
+      <table>
+        <thead><tr><th>Зміна</th><th>Обмеження</th></tr></thead>
+        <tbody>
+          <tr><td>Денний бюджет кампанії</td><td>не більше +20% за раз і не більше +300 грн/день сумарно; знижувати — без обмежень</td></tr>
+          <tr><td>Пауза кампанії</td><td>без обмежень</td></tr>
+          <tr><td>Увімкнення кампанії</td><td>лише з твого прямого слова в чаті</td></tr>
+          <tr><td>Цільова ціна конверсії (tCPA)</td><td>для стратегій «Максимум конверсій» / «Цільова CPA»</td></tr>
+          <tr><td>Гео: лише присутність</td><td>—</td></tr>
+          <tr><td>Розширення кінцевого URL (PMax)</td><td>—</td></tr>
+          <tr><td>Мінус-слова кампанії</td><td>—</td></tr>
+          <tr><td>Цілі конверсій кампанії, зокрема в PMax</td><td>—</td></tr>
+          <tr><td>Будь-яка інша операція Google Ads API</td><td>лише з твого прямого слова</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="guide-note"><b>Лише через інтерфейс Google Ads</b> (у десктопному чаті з браузером або вручну): основні й додаткові конверсії, цілі акаунта за замовчуванням, виключення брендів у PMax, виключення місць розміщення, створення нових кампаній. Meta — так само тільки через інтерфейс.</p>
+  </section>
+
+  <section id="setup">
+    <h2>Встановлення скриптів</h2>
+    <p>Робиться один раз. Файли скриптів із ключами доступу є в чаті проєкту від 09.11. Нікому їх не пересилай: ключ дає право писати в базу.</p>
+
+    <h3>1. Google Ads Script</h3>
+    <ol class="guide-steps">
+      <li>Google Ads → кабінет <b>6825129974 «ТОВ ПАВУТИНА. НЕТ»</b> → Інструменти → Масові дії → Скрипти → «+» → «Новий скрипт».</li>
+      <li>Назва: <b>Pavutyna · CMO Space sync</b>. Замінити весь код вмістом файлу <code>pavutyna-google-ads-script.js</code> → «Зберегти».</li>
+      <li>Натиснути <b>«Авторизація»</b> → вибрати свій Google-акаунт → «Дозволити». Це може зробити тільки людина.</li>
+      <li>«Запустити» → «Запустити без попереднього перегляду». Перший запуск підтягує історію з січня 2025 і триває кілька хвилин.</li>
+      <li>У списку скриптів, у колонці «Частота», вибрати <b>«Щогодини»</b>.</li>
+    </ol>
+
+    <h3>2. GA4 Apps Script</h3>
+    <ol class="guide-steps">
+      <li>script.google.com під акаунтом із доступом до GA4 <b>348106289</b> → «Новий проєкт», назва «Pavutyna · GA4 → CMO Space».</li>
+      <li>Замінити код вмістом <code>pavutyna-ga4-apps-script.js</code> → «Зберегти».</li>
+      <li>Зліва «Служби» (+) → <b>Google Analytics Data API</b> → «Додати».</li>
+      <li>Угорі вибрати функцію <code>setup</code> → «Виконати» → дозволити доступ. Вона завантажить історію і створить запуски на 06:20 і 13:20.</li>
+    </ol>
+  </section>
+
+  <section id="trouble">
+    <h2>Якщо щось зламалось</h2>
+    <div class="guide-cards">
+      <article><h3>Аналітик пише «синхронізація не працює»</h3><p>Відкрий Google Ads → Скрипти → «Pavutyna · CMO Space sync» → «Журнали» або Apps Script → «Виконання». Найчастіше причина — прострочена авторизація: натисни «Авторизація» ще раз.</p></article>
+      <article><h3>Зміна не застосувалась</h3><p>Попроси в чаті: «статус команд по рішенню &lt;id&gt;». Claude покаже, чи команду відхилили запобіжники, чи Google Ads повернув помилку, і що з цим робити.</p></article>
+      <article><h3>Цифри не збігаються з кабінетом</h3><p>Google Ads дорахувує конверсії до кількох днів назад, тому останні 35 днів щодня перезаписуються. Витрати за сьогодні — неповні.</p></article>
+      <article><h3>Ключ потрапив не туди</h3><p>Напиши в чаті «заміни ключ Google Ads / GA4». Старий вимкнеться, ти отримаєш новий, і його треба буде вставити в скрипт.</p></article>
+    </div>
+  </section>
+
+  <footer class="guide-foot">Технічні деталі для Claude й агентів — документи проєкту <code>claude/marketing-automation.md</code> і <code>claude/ads-executor-protocol.md</code>. Код — репозиторій <code>pavutyna-workflow</code>, папка <code>cmo-workspace/integrations</code>.</footer>
+</main>
+</body>
+</html>
