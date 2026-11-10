@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {oohSummary,project,fitZoom,rowsMarkup,mapMarkup,dateUa} from '../ooh.js';
+const items=[{id:'a',kind:'banner',area:'Дарниця',status:'installed',installed_on:'2026-08-07',lat:50.38,lng:30.71},{id:'b',kind:'banner',area:'Дарниця',status:'removed',installed_on:'2026-09-23',lat:50.43,lng:30.44},{id:'c',kind:'billboard',status:'ordered',price:3500,address:'Гарматна <b>51'},{id:'d',kind:'billboard',status:'cancelled',price:3500}];
+test('підсумки',()=>{const s=oohSummary(items);assert.equal(s.banners,2);assert.equal(s.bannersLive,1);assert.equal(s.lastBanner,'2026-09-23');assert.equal(s.boards,2);assert.equal(s.boardsOrdered,1);assert.equal(s.boardsBudget,3500);assert.deepEqual(s.areas,[['Дарниця',2]]);});
+test('проєкція й зум вміщують точки',()=>{const a=project(50.32,30.43,12),b=project(50.47,30.72,12);assert(a.x<b.x&&a.y>b.y);const z=fitZoom([{lat:50.32,lng:30.43},{lat:50.47,lng:30.72}],900,440);assert(z>=10&&z<=12);});
+test('рядки екрануються, посилання на карту',()=>{const h=rowsMarkup(items.map((i,n)=>({...i,n})),true);assert(!h.includes('<b>51'));assert(h.includes('google.com/maps?q=50.38,30.71'));assert(h.includes('data-edit="c"'));assert(!rowsMarkup(items,false).includes('data-edit'));});
+test('карта: піни і тайли',()=>{const m=mapMarkup(items.filter(i=>i.lat).map((i,n)=>({...i,n:n+1})),900,440,11);assert.equal((m.match(/ooh-pin/g)||[]).length,2);assert(m.includes('basemaps.cartocdn.com'));});
+test('дата',()=>assert.equal(dateUa('2026-08-07'),'07.08.2026'));
