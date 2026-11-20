@@ -7,7 +7,7 @@ UPDATE storage.buckets SET file_size_limit=52428800,
 CREATE OR REPLACE FUNCTION cmo.file_name_allowed(name text, mime text) RETURNS boolean
 LANGUAGE sql IMMUTABLE SET search_path TO '' AS $$
  SELECT length(COALESCE(name,'')) BETWEEN 1 AND 255
-  AND lower(substring(name from '\.([^.]+)$')) IS DISTINCT FROM ALL(ARRAY['exe','msi','bat','cmd','com','scr','pif','ps1','vbs','vbe','js','mjs','jse','wsf','jar','apk','app','dmg','pkg','sh','reg','lnk','html','htm','xhtml','hta','php'])
+  AND NOT (COALESCE(lower(substring(name from '\.([^.]+)$')),'') = ANY(ARRAY['exe','msi','bat','cmd','com','scr','pif','ps1','vbs','vbe','js','mjs','jse','wsf','jar','apk','app','dmg','pkg','sh','reg','lnk','html','htm','xhtml','hta','php']))
   AND COALESCE(mime,'') !~* '(html|javascript|x-msdownload|x-sh)'
   AND length(COALESCE(mime,'')) BETWEEN 3 AND 255
 $$;
