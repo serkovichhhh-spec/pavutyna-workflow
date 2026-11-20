@@ -76,6 +76,7 @@ export function mountOoh(root,{request,notice,storage}){
  let items=[],canEdit=false,filter='all',zoomDelta=0;
  const blobs=new Map();
  async function photoUrl(path){
+  if(path.startsWith('/'))return path; // фото, що лежать у самому Workspace (звіти агенції)
   if(blobs.has(path))return blobs.get(path);
   const p=(async()=>{const res=await fetch(`${storage.url}/storage/v1/object/authenticated/cmo-ooh-photos/${path.split('/').map(encodeURIComponent).join('/')}`,{headers:{apikey:storage.key,Authorization:'Bearer '+await storage.token()}});
    if(!res.ok)throw Error('Фото недоступне');return URL.createObjectURL(await res.blob());})();
