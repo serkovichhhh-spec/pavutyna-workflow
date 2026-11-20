@@ -133,7 +133,7 @@ export function mountOoh(root,{request,notice,storage}){
   hydrate(body);
   const input=body.querySelector('.ooh-photo-input'),status=body.querySelector('.ooh-photo-status');
   input?.addEventListener('change',async()=>{if(!input.files.length)return;input.disabled=true;
-   try{await uploadPhotos(id,input.files,status);await load();reopen(id,status.textContent);}catch(x){status.textContent=x.message;await load();}finally{input.disabled=false;input.value='';}});
+   try{await uploadPhotos(id,input.files,status);await load();reopen(id,status.textContent);}catch(x){await load();reopen(id,x.message);}finally{input.disabled=false;input.value='';}});
   body.querySelectorAll('[data-photo-remove]').forEach(b=>b.addEventListener('click',async()=>{b.disabled=true;
    try{await request({op:'photo_remove',id,path:b.dataset.photoRemove});await load();reopen(id,'Фото прибрано');}catch(x){status.textContent=x.message;b.disabled=false;}}));
  }

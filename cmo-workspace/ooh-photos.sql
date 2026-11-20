@@ -20,8 +20,13 @@ DROP POLICY IF EXISTS cmo_ooh_photo_read ON storage.objects;
 DROP POLICY IF EXISTS cmo_ooh_photo_upload ON storage.objects;
 DROP POLICY IF EXISTS cmo_ooh_photo_delete ON storage.objects;
 CREATE POLICY cmo_ooh_photo_read ON storage.objects FOR SELECT TO authenticated USING(bucket_id='cmo-ooh-photos' AND cmo.ooh_is_member());
-CREATE POLICY cmo_ooh_photo_upload ON storage.objects FOR INSERT TO authenticated WITH CHECK(bucket_id='cmo-ooh-photos' AND cmo.ooh_can_edit()
- AND EXISTS(SELECT 1 FROM cmo.ooh_placements p WHERE p.id=split_part(name,'/',1)));
+CREATE OR REPLACE FUNCTION cmo.ooh_photo_upload_ok(path text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO '' AS $$
+ SELECT cmo.ooh_can_edit() AND EXISTS(SELECT 1 FROM cmo.ooh_placements p WHERE p.id=split_part(path,'/',1))
+$$;
+REVOKE ALL ON FUNCTION cmo.ooh_photo_upload_ok(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION cmo.ooh_photo_upload_ok(text) TO authenticated;
+CREATE POLICY cmo_ooh_photo_upload ON storage.objects FOR INSERT TO authenticated WITH CHECK(bucket_id='cmo-ooh-photos' AND cmo.ooh_photo_upload_ok(name));
 CREATE POLICY cmo_ooh_photo_delete ON storage.objects FOR DELETE TO authenticated USING(bucket_id='cmo-ooh-photos' AND cmo.ooh_can_edit());
 
 CREATE OR REPLACE FUNCTION cmo.ooh_action(body jsonb) RETURNS jsonb
