@@ -23,3 +23,10 @@ test('великий файл — TUS шматками по 6 МБ, з відн�
  assert.deepEqual(calls.map(c=>c.join(':')),['POST:','PATCH:0',`PATCH:${CHUNK}`,'HEAD:',`PATCH:${CHUNK}`,`PATCH:${CHUNK*2}`]);
 });
 test('метадані TUS у base64 з кирилицею',()=>{const m=tusMetadata({bucket:'b',path:'п/1',mime:'image/png'});assert.match(m,/^bucketName Yg==,objectName /);});
+import {taskToolsMarkup,safeUrl,linkHost} from '../task-tools.js';
+test('посилання на Google Drive у файлах задачі',()=>{
+ const t={permissions:{work:true},attachments:[{id:'l1',kind:'link',status:'ready',name:'Відео <1>',url:'https://drive.google.com/file/d/abc/view'},{id:'l2',kind:'link',status:'ready',name:'x',url:'javascript:alert(1)'}]};
+ const m=taskToolsMarkup(t,[],[],{role:'executor'});
+ assert.match(m,/data-tool="link_add"/);assert.match(m,/href="https:\/\/drive\.google\.com\/file\/d\/abc\/view"/);assert(!m.includes('javascript:'));assert(!m.includes('<1>'));assert.match(m,/Google Drive · посилання/);
+ assert.equal(safeUrl('ftp://x'),null);assert.equal(linkHost('https://www.dropbox.com/s/1'),'dropbox.com');
+});

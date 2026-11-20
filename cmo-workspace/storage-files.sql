@@ -25,3 +25,7 @@ BEGIN
  END IF;
  EXECUTE replace(src,old,new);
 END $$;
+
+-- Посилання на великі файли (Google Drive тощо): op link_add у cmo.request → attachments[{kind:'link',url,name,status:'ready'}].
+-- Прибираються звичайним attachment_remove; для посилань confirm/restore не перевіряють storage.
+-- (Застосовано міграцією cmo_task_link_attachments 20.11.2026 — вставка гілки перед attachment_confirm.)
