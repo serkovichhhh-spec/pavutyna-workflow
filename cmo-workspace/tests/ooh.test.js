@@ -5,3 +5,5 @@ test('проєкція й зум вміщують точки',()=>{const a=proje
 test('рядки екрануються, посилання на карту',()=>{const h=rowsMarkup(items.map((i,n)=>({...i,n})),true);assert(!h.includes('<b>51'));assert(h.includes('google.com/maps?q=50.38,30.71'));assert(h.includes('data-edit="c"'));assert(!rowsMarkup(items,false).includes('data-edit'));});
 test('карта: піни і тайли',()=>{const m=mapMarkup(items.filter(i=>i.lat).map((i,n)=>({...i,n:n+1})),900,440,11);assert.equal((m.match(/ooh-pin/g)||[]).length,2);assert(m.includes('basemaps.cartocdn.com'));});
 test('дата',()=>assert.equal(dateUa('2026-08-07'),'07.08.2026'));
+import {photoStrip,photoPath} from '../ooh.js';
+test('фотозвіт: мініатюри й шлях',()=>{const it={id:'ooh-bb-K218b',photos:[{path:'ooh-bb-K218b/1-a.jpg',name:'a.jpg'},{path:'x/2.jpg'},{path:'x/3.jpg'},{path:'x/4.jpg'}]};const m=photoStrip(it);assert.equal((m.match(/ooh-thumb"/g)||[]).length,3);assert(m.includes('+1'));assert.equal(photoStrip({id:'a'}),'');assert.equal(photoPath('ooh-1','К 245b<1>.jpg',5),'ooh-1/5-_245b_1_.jpg');assert(rowsMarkup([{...it,kind:'billboard',status:'ordered',n:'Б1'}],false).includes('data-gallery="ooh-bb-K218b"'));});
