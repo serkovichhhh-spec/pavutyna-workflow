@@ -6,10 +6,10 @@ import {validateFile,taskToolsMarkup} from '../task-tools.js';
 test('SVG is selectable and validated as an attachment; HTML and oversized files stay rejected', () => {
   assert.equal(validateFile({name:'LOGO.SVG',size:97,type:''}),'image/svg+xml');
   assert.throws(()=>validateFile({name:'page.html',size:97}));
-  assert.throws(()=>validateFile({name:'logo.svg',size:20971521}));
+  assert.throws(()=>validateFile({name:'logo.svg',size:52428801}));
   assert.throws(()=>validateFile({name:'logo.svg',size:0}));
   const markup=taskToolsMarkup({permissions:{work:true}},[],[],{role:'executor'});
-  assert.match(markup,/accept="\.svg,/);
+  assert.match(markup,/data-task-file/);assert.doesNotMatch(markup,/accept=/);
 });
 
 test('result saving is separate from transitions and escapes user text', () => {

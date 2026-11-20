@@ -1,4 +1,5 @@
 import {escapeHtml as h} from './metrics.js';
+import {uploadToStorage} from './storage-upload.js';
 
 // Наружка: банери (власні розміщення) і білборди (агенція) — один реєстр cmo.ooh_placements.
 export const kindLabel={banner:'Банер',billboard:'Білборд',other:'Інше'};
@@ -69,7 +70,7 @@ function formMarkup(i={}){
  <div class="form-row"><label>Посилання на площину<input name="link" value="${v('link')}"></label><label>Фотозвіт (посилання)<input name="photo" value="${v('photo')}"></label></div>
  <label>Нотатка<textarea name="note" rows="2">${v('note')}</textarea></label><p class="space-error" role="status"></p><button>Зберегти</button></form>
  ${i.id?`<section class="ooh-photo-edit"><h3>Фотозвіт <small>${photosOf(i).length} фото</small></h3><div class="ooh-photo-grid">${photosOf(i).map(p=>`<figure><img alt="" data-photo="${h(p.path)}"><figcaption>${h(p.name||'')}</figcaption><button type="button" data-photo-remove="${h(p.path)}" aria-label="Прибрати фото">×</button></figure>`).join('')}</div>
- <label class="ooh-photo-add">+ Додати фото<input type="file" class="ooh-photo-input" accept="image/jpeg,image/png,image/webp" multiple hidden></label><p class="ooh-photo-status" role="status"></p></section>`:'<p class="space-source">Фото можна додати після збереження носія.</p>'}`;
+ <label class="ooh-photo-add">+ Додати фото<input type="file" class="ooh-photo-input" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" multiple hidden></label><p class="ooh-photo-status" role="status"></p></section>`:'<p class="space-source">Фото можна додати після збереження носія.</p>'}`;
 }
 
 export function mountOoh(root,{request,notice,storage}){
@@ -86,11 +87,10 @@ export function mountOoh(root,{request,notice,storage}){
  async function uploadPhotos(id,files,status){
   let ok=0;const list=[...files];
   for(const f of list){
-   if(!/^image\/(jpeg|png|webp)$/.test(f.type)){status.textContent=`${f.name}: лише JPG, PNG або WebP`;continue;}
+   if(!/^image\/(jpeg|png|webp|heic|heif)$/.test(f.type)){status.textContent=`${f.name}: лише фото: JPG, PNG, WebP або HEIC`;continue;}
    status.textContent=`Завантаження ${ok+1} з ${list.length}…`;
    const path=photoPath(id,f.name,Date.now()+ok);
-   const res=await fetch(`${storage.url}/storage/v1/object/cmo-ooh-photos/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'POST',headers:{apikey:storage.key,Authorization:'Bearer '+await storage.token(),'Content-Type':f.type,'x-upsert':'false'},body:f});
-   if(!res.ok){const e=await res.json().catch(()=>({}));throw Error(`${f.name}: ${e.message||e.error||'не вдалося завантажити'}`);}
+   try{await uploadToStorage({url:storage.url,key:storage.key,token:storage.token,bucket:'cmo-ooh-photos',path,file:f,mime:f.type});}catch(e){throw Error(`${f.name}: ${e.message}`);}
    await request({op:'photo_add',id,path,name:f.name});ok++;
   }
   status.textContent=ok?`Додано фото: ${ok}`:status.textContent;return ok;
