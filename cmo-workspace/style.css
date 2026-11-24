@@ -259,3 +259,10 @@ aside nav{display:flex;flex-direction:column;gap:6px}aside nav #owner-nav{displa
 .ooh-gallery{width:min(1100px,96vw)}.ooh-gallery-body img{width:100%;max-height:72vh;object-fit:contain;border-radius:10px;background:#000}.ooh-gallery-nav{display:flex;justify-content:space-between;gap:10px;margin-top:10px}
 
 .task-link-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.task-link-form input{flex:1;min-width:160px}.task-link-form input[name=name]{flex:.6}.task-file a.button{display:inline-flex;align-items:center;min-height:36px;padding:6px 12px;border-radius:10px;border:1px solid #4a6797;color:#cfe0ff;text-decoration:none}
+/* Промокоди */
+.promo-table td{vertical-align:top}.promo-table small,.promo-table em{display:block;font-size:11px;letter-spacing:0;color:var(--cmo-muted);margin-top:4px;white-space:normal}.promo-offer{white-space:normal!important;min-width:220px;max-width:360px}
+.promo-code{font-family:ui-monospace,Menlo,monospace;font-size:15px;letter-spacing:1px}.promo-muted{color:var(--cmo-muted);font-size:12px}
+.promo-status{display:inline-block;font-size:12px;padding:2px 8px;border-radius:6px;background:#ffffff14;margin-top:4px}.promo-status.live{background:#70c9a433;color:#9fe3c4}.promo-status.new{background:#e4be7733;color:#f3d79e}.promo-status.ended,.promo-status.paused{opacity:.65}
+.promo-site{margin:0 0 20px;border-color:#e4be7766}.promo-site h3{font-size:14px;margin:16px 0 8px}.promo-lines{width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.promo-check{letter-spacing:0;font-size:12px;min-height:16px}.promo-check.ok{color:#9fe3c4}.promo-check.warn{color:#f3d79e}.promo-check.bad{color:#ffaf9e}
+.promo-how{margin:0 0 16px;color:var(--cmo-muted)}.promo-how ol{line-height:1.7}.promo-dialog form{gap:12px}

@@ -8,6 +8,7 @@ import {mountOwnerSpace} from './owner-space.js';
 import {createPayload} from './task-template.js';
 import {mountCoverage} from './coverage.js';
 import {mountOoh} from './ooh.js';
+import {mountPromo} from './promo.js';
 import {uploadToStorage} from './storage-upload.js';
 import {purchaseMarkup,mountPurchase,purchaseChannels,currentMonth} from './purchase.js';
 import {taskMetrics,escapeHtml as h} from './metrics.js';
@@ -25,7 +26,7 @@ async function request(path,body,token){const res=await fetch(config.url+path,{m
 async function token(){const access=await sessions.token();session=sessions.read();return access;}
 async function rpc(body,endpoint='cmo_workspace'){const access=await token();const res=await fetch(config.url+'/rest/v1/rpc/'+endpoint,{method:'POST',headers:{apikey:config.key,Authorization:`Bearer ${access}`,'Content-Type':'application/json','Content-Profile':'api','Accept-Profile':'api'},body:JSON.stringify({body})});const data=await res.json();if(!res.ok)throw Error(data.message||'Не вдалося зберегти. Спробуй оновити задачник.');return data;}
 const ownerSpace=mountOwnerSpace({request:body=>rpc(body,'cmo_owner_data'),boardRequest:body=>rpc(body,'cmo_board_action'),projectRequest:body=>rpc(body,'cmo_project_action'),contentRequest:body=>rpc(body,'cmo_content_task'),reloadTasks:async()=>{const epoch=authEpoch;const data=await rpc({op:'list'});if(epoch===authEpoch&&actor){tasks=data.tasks;team=data.team||[];assignees=data.assignees;}},backupStatus:()=>rpc({},'cmo_backup_status'),notice,getTasks:()=>tasks,getTeam:()=>team.length?team:assignees.map(name=>({name,active:true})),openTask:showTask,openAssignee,onNavigate:key=>{navigation.select(key);$('#cabinet-space').hidden=true;}});
-const navigation=mountNavigation({showInbox,showCoverage,showOoh,showTasks:next=>{view=next;render();},showOwner:next=>ownerSpace.go(next),showCabinet});
+const navigation=mountNavigation({showInbox,showCoverage,showOoh,showPromo,showTasks:next=>{view=next;render();},showOwner:next=>ownerSpace.go(next),showCabinet});
 navigation.setActor(null);
 function dates(v){if(!v)return '';const d=new Date(v);return Number.isNaN(d.getTime())?v:new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv',dateStyle:'short',timeStyle:'short'}).format(d);}
 function options(selectedValue=''){return assignees.map(n=>`<option ${n===selectedValue?'selected':''}>${h(n)}</option>`).join('');}
@@ -66,6 +67,7 @@ async function creativeAction(values){if(busy)return false;busy=true;const id=se
 creativeTools=mountCreativeReview($('#task-detail'),{getTask:()=>selected,getActor:()=>actor,upload:uploadTaskFile,fetchFile:fetchCreativeFile,action:creativeAction,notice});
 mountPurchase($('#task-detail'),{act:async body=>{const id=selected?.id;await rpc({...body,id,version:selected?.version},'cmo_purchase_action');await load();if(tasks.some(t=>t.id===id))showTask(id);}});mountTaskTools($('#task-detail'),{getTask:()=>selected,getTasks:()=>tasks,mutate,openTask:showTask,upload:uploadTaskFile,download:downloadTaskFile,notice});
 function showCoverage(){inboxEpoch++;ownerSpace.hide();$('#workspace').hidden=true;$('#new-task').hidden=true;$('#cabinet-space').hidden=false;$('#heading').textContent='Покриття · перевірка адреси';mountCoverage($('#cabinet-content'),{request:body=>rpc(body,'cmo_coverage'),actor,notice});}
+function showPromo(tab){inboxEpoch++;ownerSpace.hide();$('#workspace').hidden=true;$('#new-task').hidden=true;$('#cabinet-space').hidden=false;$('#heading').textContent={promo_codes:'Промокоди',promo_zhk:'Промокоди · чати ЖК',promo_ooh:'Промокоди · наружка й флаєри',promo_sales:'Промокоди · шпаргалка для ВП і бота'}[tab]||'Промокоди';mountPromo($('#cabinet-content'),{request:body=>rpc(body,'cmo_promo'),notice,tab});}
 function showOoh(){inboxEpoch++;ownerSpace.hide();$('#workspace').hidden=true;$('#new-task').hidden=true;$('#cabinet-space').hidden=false;$('#heading').textContent='Наружка · банери й білборди';mountOoh($('#cabinet-content'),{request:body=>rpc(body,'cmo_ooh'),actor,notice,storage:{url:config.url,key:config.key,token}});}
 function showInbox(){const epoch=authEpoch,instance=++inboxEpoch;ownerSpace.hide();$('#workspace').hidden=true;$('#new-task').hidden=true;$('#cabinet-space').hidden=false;$('#heading').textContent='Inbox · потребує моєї уваги';mountInbox($('#cabinet-content'),{actor,request:body=>rpc(body,'cmo_inbox_action'),openTask:showTask,notice,isActive:()=>!!actor&&authEpoch===epoch&&inboxEpoch===instance&&navigation.current()==='inbox',onData:data=>{tasks=data.tasks;team=data.team||[];assignees=data.assignees;}});}
 $('#login-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target);try{storeSession(await request('/auth/v1/token?grant_type=password',{email:f.get('email'),password:f.get('password')}),f.get('remember')==='on');e.target.reset();await load();}catch(error){notice(error.message);}});
